@@ -32,8 +32,8 @@ export interface Strings {
   compRename: string;
   paneOpened: (paneId: string, dir: string) => string;
   paneRenamed: (paneId: string, label: string) => string;
-  dialogRouteTitle: (specialist: string, conf: number, pane: string, agent: string, status: string, facts: number) => string;
-  optSendToPane: (pane: string, agent: string, status: string) => string;
+  dialogRouteTitle: (specialist: string, conf: number, pane: string, label: string | undefined, agent: string, status: string, facts: number) => string;
+  optSendToPane: (pane: string, label: string | undefined, agent: string, status: string) => string;
   optSplitNew: string;
   optOpenNewAndLaunch: (specialist: string) => string;
   optCancel: string;
@@ -69,9 +69,14 @@ const en: Strings = {
   compRename: "Rename current pane label",
   paneOpened: (paneId, dir) => `Opened new pane ${paneId} (right split) in ${dir}`,
   paneRenamed: (paneId, label) => `Pane ${paneId} renamed to "${label}"`,
-  dialogRouteTitle: (spec, conf, pane, agent, status, facts) =>
-    `System-1 Route: ${spec} (${conf}%)\nPane: ${pane} [agent: ${agent}, status: ${status}]\nPre-warmed memory facts: ${facts}`,
-  optSendToPane: (pane, agent, status) => `Send to existing pane (${pane} · ${agent} · ${status})`,
+  dialogRouteTitle: (spec, conf, pane, label, agent, status, facts) => {
+    const labelStr = label ? ` "${label}"` : "";
+    return `System-1 Route: ${spec} (${conf}%)\nPane: ${pane}${labelStr} [agent: ${agent}, status: ${status}]\nPre-warmed memory facts: ${facts}`;
+  },
+  optSendToPane: (pane, label, agent, status) => {
+    const labelStr = label ? ` "${label}"` : "";
+    return `Send to existing pane${labelStr} (${pane} · ${agent} · ${status})`;
+  },
   optSplitNew: "Open in a NEW side-by-side split pane",
   optOpenNewAndLaunch: (spec) => `Open new side-by-side pane for ${spec} and launch Pi`,
   optCancel: "Cancel delegation",
@@ -107,9 +112,14 @@ const cs: Strings = {
   compRename: "Přejmenovat popisek aktuálního panelu",
   paneOpened: (paneId, dir) => `Otevřen nový panel ${paneId} (vedle) v ${dir}`,
   paneRenamed: (paneId, label) => `Panel ${paneId} přejmenován na "${label}"`,
-  dialogRouteTitle: (spec, conf, pane, agent, status, facts) =>
-    `System-1 Směrování: ${spec} (${conf}%)\nPanel: ${pane} [agent: ${agent}, stav: ${status}]\nPřipravená fakta z paměti: ${facts}`,
-  optSendToPane: (pane, agent, status) => `Odeslat do existujícího panelu (${pane} · ${agent} · ${status})`,
+  dialogRouteTitle: (spec, conf, pane, label, agent, status, facts) => {
+    const labelStr = label ? ` "${label}"` : "";
+    return `System-1 Směrování: ${spec} (${conf}%)\nPanel: ${pane}${labelStr} [agent: ${agent}, stav: ${status}]\nPřipravená fakta z paměti: ${facts}`;
+  },
+  optSendToPane: (pane, label, agent, status) => {
+    const labelStr = label ? ` "${label}"` : "";
+    return `Odeslat do existujícího panelu${labelStr} (${pane} · ${agent} · ${status})`;
+  },
   optSplitNew: "Otevřít v NOVÉM vedlejším panelu",
   optOpenNewAndLaunch: (spec) => `Otevřít nový vedlejší panel pro ${spec} a spustit Pi`,
   optCancel: "Zrušit delegaci",

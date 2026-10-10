@@ -231,6 +231,7 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
               verdict.specialist,
               confPct,
               resolved.paneId,
+              resolved.paneLabel,
               resolved.agentKind || "none",
               resolved.agentStatus || "none",
               verdict.context_slice.length
@@ -241,6 +242,7 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
               options = [
                 currentStrings.optSendToPane(
                   resolved.paneId,
+                  resolved.paneLabel,
                   resolved.agentKind || "agent",
                   resolved.agentStatus || "idle"
                 ),
