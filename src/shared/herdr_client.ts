@@ -215,10 +215,18 @@ export async function resolveTarget(
   return { paneId: target, hasAgent: false };
 }
 
+export async function sendKeys(target: string, ...keys: string[]): Promise<void> {
+  const args = ["agent", "send-keys", target, ...keys];
+  const res = await runHerdr(args);
+  if (res.code !== 0) {
+    await runHerdr(["pane", "send-keys", target, ...keys]);
+  }
+}
+
 export async function promptAgent(
   target: string,
   promptText: string,
-  options?: { wait?: boolean; timeoutMs?: number }
+  options?: { wait?: boolean; timeoutMs?: number; autoConfirm?: boolean }
 ): Promise<string> {
   // Recursion guard: never prompt self!
   const myPane = currentPaneId();
@@ -242,6 +250,13 @@ export async function promptAgent(
       `herdr agent prompt to ${target} failed (code ${res.code}): ${res.stderr || res.stdout}`
     );
   }
+
+  // Auto-confirm: send Enter key so the agent submits immediately without waiting
+  if (options?.autoConfirm !== false) {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    await sendKeys(target, "enter").catch(() => {});
+  }
+
   return res.stdout.trim();
 }
 

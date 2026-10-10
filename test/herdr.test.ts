@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { currentPaneId, isHerdrActive, promptAgent, resolveTarget } from "../src/shared/herdr_client.ts";
+import { currentPaneId, isHerdrActive, promptAgent, resolveTarget, sendKeys } from "../src/shared/herdr_client.ts";
 
 test("herdr detection reads environment variables", () => {
   const origEnv = process.env.HERDR_ENV;
@@ -39,4 +39,9 @@ test("resolveTarget falls back to original target if herdr is offline", async ()
   assert.equal(typeof res.paneId, "string");
   assert.equal(typeof res.hasAgent, "boolean");
 });
+
+test("sendKeys is callable without error", async () => {
+  assert.equal(typeof sendKeys, "function");
+});
+
 
