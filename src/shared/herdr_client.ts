@@ -182,7 +182,7 @@ export async function createTab(options: {
 export async function resolveTarget(
   target: string,
   cwd?: string
-): Promise<{ paneId: string; hasAgent: boolean; agentKind?: string }> {
+): Promise<{ paneId: string; hasAgent: boolean; agentKind?: string; agentStatus?: string }> {
   const t = target.toLowerCase();
   const [agents, panes] = await Promise.all([
     listAgents(cwd).catch(() => []),
@@ -192,23 +192,23 @@ export async function resolveTarget(
   // 1. Direct match on live agents (by pane_id, agent name, or project cwd)
   for (const a of agents) {
     if (a.pane_id.toLowerCase() === t || a.agent.toLowerCase() === t) {
-      return { paneId: a.pane_id, hasAgent: true, agentKind: a.agent };
+      return { paneId: a.pane_id, hasAgent: true, agentKind: a.agent, agentStatus: a.agent_status };
     }
     if (a.cwd && a.cwd.toLowerCase().endsWith(t)) {
-      return { paneId: a.pane_id, hasAgent: true, agentKind: a.agent };
+      return { paneId: a.pane_id, hasAgent: true, agentKind: a.agent, agentStatus: a.agent_status };
     }
   }
 
   // 2. Direct match on panes (by pane_id, agent occupant, or cwd)
   for (const p of panes) {
     if (p.pane_id.toLowerCase() === t) {
-      return { paneId: p.pane_id, hasAgent: Boolean(p.agent), agentKind: p.agent };
+      return { paneId: p.pane_id, hasAgent: Boolean(p.agent), agentKind: p.agent, agentStatus: p.agent_status };
     }
     if (p.agent && p.agent.toLowerCase() === t) {
-      return { paneId: p.pane_id, hasAgent: true, agentKind: p.agent };
+      return { paneId: p.pane_id, hasAgent: true, agentKind: p.agent, agentStatus: p.agent_status };
     }
     if (p.cwd && p.cwd.toLowerCase().endsWith(t)) {
-      return { paneId: p.pane_id, hasAgent: Boolean(p.agent), agentKind: p.agent };
+      return { paneId: p.pane_id, hasAgent: Boolean(p.agent), agentKind: p.agent, agentStatus: p.agent_status };
     }
   }
 

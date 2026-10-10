@@ -30,6 +30,12 @@ export interface Strings {
   compLangCs: string;
   compSplit: string;
   paneOpened: (paneId: string, dir: string) => string;
+  dialogRouteTitle: (specialist: string, conf: number, pane: string, agent: string, status: string, facts: number) => string;
+  optSendToPane: (pane: string, agent: string, status: string) => string;
+  optSplitNew: string;
+  optOpenNewAndLaunch: (specialist: string) => string;
+  optCancel: string;
+  delegationCancelled: string;
 }
 
 const en: Strings = {
@@ -59,6 +65,13 @@ const en: Strings = {
   compLangCs: "Czech",
   compSplit: "Split workspace into a new side-by-side pane",
   paneOpened: (paneId, dir) => `Opened new pane ${paneId} (right split) in ${dir}`,
+  dialogRouteTitle: (spec, conf, pane, agent, status, facts) =>
+    `System-1 Route: ${spec} (${conf}%)\nPane: ${pane} [agent: ${agent}, status: ${status}]\nPre-warmed memory facts: ${facts}`,
+  optSendToPane: (pane, agent, status) => `Send to existing pane (${pane} · ${agent} · ${status})`,
+  optSplitNew: "Open in a NEW side-by-side split pane",
+  optOpenNewAndLaunch: (spec) => `Open new side-by-side pane for ${spec} and launch Pi`,
+  optCancel: "Cancel delegation",
+  delegationCancelled: "Delegation cancelled by user.",
 };
 
 const cs: Strings = {
@@ -88,6 +101,13 @@ const cs: Strings = {
   compLangCs: "Čeština",
   compSplit: "Rozdělit okno na nový boční panel",
   paneOpened: (paneId, dir) => `Otevřen nový panel ${paneId} (vedle) v ${dir}`,
+  dialogRouteTitle: (spec, conf, pane, agent, status, facts) =>
+    `System-1 Směrování: ${spec} (${conf}%)\nPanel: ${pane} [agent: ${agent}, stav: ${status}]\nPřipravená fakta z paměti: ${facts}`,
+  optSendToPane: (pane, agent, status) => `Odeslat do existujícího panelu (${pane} · ${agent} · ${status})`,
+  optSplitNew: "Otevřít v NOVÉM vedlejším panelu",
+  optOpenNewAndLaunch: (spec) => `Otevřít nový vedlejší panel pro ${spec} a spustit Pi`,
+  optCancel: "Zrušit delegaci",
+  delegationCancelled: "Delegace zrušena uživatelem.",
 };
 
 export function normalizeLocale(raw: string | undefined): Locale {

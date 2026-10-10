@@ -27,6 +27,9 @@ test("every locale has a complete string table", () => {
 			"compLang",
 			"compLangEn",
 			"compLangCs",
+			"optSplitNew",
+			"optCancel",
+			"delegationCancelled",
 		] as const) {
 			assert.equal(typeof s[key], "string", `${locale}.${key} must be a string`);
 			assert.ok(s[key].trim().length > 0, `${locale}.${key} must not be empty`);
@@ -36,6 +39,9 @@ test("every locale has a complete string table", () => {
 		assert.equal(typeof s.delegated("target"), "string");
 		assert.equal(typeof s.collecting("target"), "string");
 		assert.equal(typeof s.paneOpened("p1", "dir"), "string");
+		assert.equal(typeof s.dialogRouteTitle("pi-uma", 100, "w1:p1", "pi", "idle", 3), "string");
+		assert.equal(typeof s.optSendToPane("w1:p1", "pi", "idle"), "string");
+		assert.equal(typeof s.optOpenNewAndLaunch("pi-uma"), "string");
 	}
 });
 

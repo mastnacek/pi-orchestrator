@@ -196,17 +196,67 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
 
           const resolved = await resolveTarget(verdict.specialist, ctx.cwd);
           let targetPaneId = resolved.paneId;
-          if (!resolved.hasAgent) {
-            const projectDir = resolveProjectDirectory(verdict.specialist, ctx.cwd) || ctx.cwd;
-            if (ctx.hasUI) {
-              ctx.ui.notify(`Opening new pane for ${verdict.specialist}...`, "info");
+
+          if (ctx.hasUI) {
+            const confPct = Math.round(verdict.confidence * 100);
+            const dialogTitle = currentStrings.dialogRouteTitle(
+              verdict.specialist,
+              confPct,
+              resolved.paneId,
+              resolved.agentKind || "none",
+              resolved.agentStatus || "none",
+              verdict.context_slice.length
+            );
+
+            let options: string[] = [];
+            if (resolved.hasAgent) {
+              options = [
+                currentStrings.optSendToPane(
+                  resolved.paneId,
+                  resolved.agentKind || "agent",
+                  resolved.agentStatus || "idle"
+                ),
+                currentStrings.optSplitNew,
+                currentStrings.optCancel,
+              ];
+            } else {
+              options = [
+                currentStrings.optOpenNewAndLaunch(verdict.specialist),
+                currentStrings.optCancel,
+              ];
             }
-            targetPaneId = await splitPane({
-              cwd: projectDir,
-              direction: "right",
-            });
-            await runInPane(targetPaneId, "pi");
-            await waitForAgentReady(targetPaneId);
+
+            const choice = await ctx.ui.select(dialogTitle, options);
+            if (!choice || choice === currentStrings.optCancel) {
+              ctx.ui.notify(currentStrings.delegationCancelled, "info");
+              return;
+            }
+
+            if (
+              choice === currentStrings.optSplitNew ||
+              choice === currentStrings.optOpenNewAndLaunch(verdict.specialist)
+            ) {
+              const projectDir =
+                resolveProjectDirectory(verdict.specialist, ctx.cwd) || ctx.cwd;
+              ctx.ui.notify(`Opening new pane for ${verdict.specialist}...`, "info");
+              targetPaneId = await splitPane({
+                cwd: projectDir,
+                direction: "right",
+              });
+              await runInPane(targetPaneId, "pi");
+              await waitForAgentReady(targetPaneId);
+            }
+          } else {
+            if (!resolved.hasAgent) {
+              const projectDir =
+                resolveProjectDirectory(verdict.specialist, ctx.cwd) || ctx.cwd;
+              targetPaneId = await splitPane({
+                cwd: projectDir,
+                direction: "right",
+              });
+              await runInPane(targetPaneId, "pi");
+              await waitForAgentReady(targetPaneId);
+            }
           }
 
           await promptAgent(targetPaneId, finalPrompt);
