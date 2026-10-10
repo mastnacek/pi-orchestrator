@@ -92,6 +92,42 @@ export async function createTab(options: {
   return res.stdout.trim();
 }
 
+export async function resolveTarget(
+  target: string,
+  cwd?: string
+): Promise<{ paneId: string; hasAgent: boolean; agentKind?: string }> {
+  const t = target.toLowerCase();
+  const [agents, panes] = await Promise.all([
+    listAgents(cwd).catch(() => []),
+    listPanes(cwd).catch(() => []),
+  ]);
+
+  // 1. Direct match on live agents (by pane_id, agent name, or project cwd)
+  for (const a of agents) {
+    if (a.pane_id.toLowerCase() === t || a.agent.toLowerCase() === t) {
+      return { paneId: a.pane_id, hasAgent: true, agentKind: a.agent };
+    }
+    if (a.cwd && a.cwd.toLowerCase().endsWith(t)) {
+      return { paneId: a.pane_id, hasAgent: true, agentKind: a.agent };
+    }
+  }
+
+  // 2. Direct match on panes (by pane_id, agent occupant, or cwd)
+  for (const p of panes) {
+    if (p.pane_id.toLowerCase() === t) {
+      return { paneId: p.pane_id, hasAgent: Boolean(p.agent), agentKind: p.agent };
+    }
+    if (p.agent && p.agent.toLowerCase() === t) {
+      return { paneId: p.pane_id, hasAgent: true, agentKind: p.agent };
+    }
+    if (p.cwd && p.cwd.toLowerCase().endsWith(t)) {
+      return { paneId: p.pane_id, hasAgent: Boolean(p.agent), agentKind: p.agent };
+    }
+  }
+
+  return { paneId: target, hasAgent: false };
+}
+
 export async function promptAgent(
   target: string,
   promptText: string,

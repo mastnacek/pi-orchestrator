@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { currentPaneId, isHerdrActive, promptAgent } from "../src/shared/herdr_client.ts";
+import { currentPaneId, isHerdrActive, promptAgent, resolveTarget } from "../src/shared/herdr_client.ts";
 
 test("herdr detection reads environment variables", () => {
   const origEnv = process.env.HERDR_ENV;
@@ -33,3 +33,10 @@ test("promptAgent forbids self-delegation (recursion guard)", async () => {
     process.env.HERDR_PANE_ID = origPane;
   }
 });
+
+test("resolveTarget falls back to original target if herdr is offline", async () => {
+  const res = await resolveTarget("custom_pane_xyz");
+  assert.equal(typeof res.paneId, "string");
+  assert.equal(typeof res.hasAgent, "boolean");
+});
+

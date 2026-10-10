@@ -3,8 +3,8 @@ import { Type } from "typebox";
 import type { PluginState } from "../../shared/state.ts";
 import {
   currentPaneId,
-  listAgents,
   promptAgent,
+  resolveTarget,
 } from "../../shared/herdr_client.ts";
 
 export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void {
@@ -41,30 +41,10 @@ export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void
     }),
     execute: async (_toolCallId, params, _signal, _onUpdate, ctx) => {
       try {
+        const resolved = await resolveTarget(params.target, ctx.cwd);
+        const resolvedTarget = resolved.paneId;
+
         const myPane = currentPaneId();
-        if (myPane && params.target.toLowerCase() === myPane.toLowerCase()) {
-          throw new Error(
-            `Recursion prevented: Orchestrator cannot delegate to its own pane (${myPane})!`
-          );
-        }
-
-        // Find best target identifier
-        const agents = await listAgents(ctx.cwd).catch(() => []);
-        let resolvedTarget = params.target;
-
-        // Try matching target against agent pane_id, agent name, or project cwd
-        const matched = agents.find((a) => {
-          if (a.pane_id.toLowerCase() === params.target.toLowerCase()) return true;
-          if (a.agent.toLowerCase() === params.target.toLowerCase()) return true;
-          if (a.cwd && a.cwd.toLowerCase().endsWith(params.target.toLowerCase())) return true;
-          return false;
-        });
-
-        if (matched) {
-          resolvedTarget = matched.pane_id;
-        }
-
-        // Check if resolvedTarget is self
         if (myPane && resolvedTarget.toLowerCase() === myPane.toLowerCase()) {
           throw new Error(
             `Recursion prevented: Matched target resolved to orchestrator's own pane (${myPane})!`

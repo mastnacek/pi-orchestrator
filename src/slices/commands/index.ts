@@ -7,6 +7,7 @@ import {
   isHerdrActive,
   listAgents,
   promptAgent,
+  resolveTarget,
 } from "../../shared/herdr_client.ts";
 
 export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
@@ -165,9 +166,10 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
             finalPrompt = `[UMA Context Slice]:\n${ctxLines.join("\n")}\n\n[Task]:\n${restText}`;
           }
 
-          await promptAgent(verdict.specialist, finalPrompt);
+          const resolved = await resolveTarget(verdict.specialist, ctx.cwd);
+          await promptAgent(resolved.paneId, finalPrompt);
           if (ctx.hasUI) {
-            ctx.ui.notify(currentStrings.delegated(verdict.specialist), "info");
+            ctx.ui.notify(currentStrings.delegated(`${verdict.specialist} (${resolved.paneId})`), "info");
           }
         } catch (err) {
           if (ctx.hasUI) {
@@ -188,9 +190,10 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
         }
 
         try {
-          await promptAgent(target, taskText);
+          const resolved = await resolveTarget(target, ctx.cwd);
+          await promptAgent(resolved.paneId, taskText);
           if (ctx.hasUI) {
-            ctx.ui.notify(currentStrings.delegated(target), "info");
+            ctx.ui.notify(currentStrings.delegated(`${target} (${resolved.paneId})`), "info");
           }
         } catch (err) {
           if (ctx.hasUI) {
