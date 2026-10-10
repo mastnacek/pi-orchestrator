@@ -7,7 +7,10 @@ import {
   isHerdrActive,
   listAgents,
   promptAgent,
+  resolveProjectDirectory,
   resolveTarget,
+  runInPane,
+  splitPane,
 } from "../../shared/herdr_client.ts";
 
 export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
@@ -36,6 +39,11 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
             label: "delegate",
             value: "delegate ",
             description: cs.compDelegate,
+          },
+          {
+            label: "split",
+            value: "split ",
+            description: cs.compSplit,
           },
           {
             label: "status",
@@ -92,6 +100,25 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
           state.lang = restText as Locale;
           if (ctx.hasUI) {
             ctx.ui.notify(`Language set to ${state.lang}`, "info");
+          }
+        }
+        return;
+      }
+
+      if (subcmd === "split") {
+        const target = restText;
+        const projectDir = target ? (resolveProjectDirectory(target, ctx.cwd) || target) : ctx.cwd;
+        try {
+          const newPaneId = await splitPane({
+            cwd: projectDir,
+            direction: "right",
+          });
+          if (ctx.hasUI) {
+            ctx.ui.notify(currentStrings.paneOpened(newPaneId, projectDir), "info");
+          }
+        } catch (err) {
+          if (ctx.hasUI) {
+            ctx.ui.notify(`Failed to split pane: ${String(err)}`, "error");
           }
         }
         return;
@@ -167,9 +194,23 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
           }
 
           const resolved = await resolveTarget(verdict.specialist, ctx.cwd);
-          await promptAgent(resolved.paneId, finalPrompt);
+          let targetPaneId = resolved.paneId;
+          if (!resolved.hasAgent) {
+            const projectDir = resolveProjectDirectory(verdict.specialist, ctx.cwd) || ctx.cwd;
+            if (ctx.hasUI) {
+              ctx.ui.notify(`Opening new pane for ${verdict.specialist}...`, "info");
+            }
+            targetPaneId = await splitPane({
+              cwd: projectDir,
+              direction: "right",
+            });
+            await runInPane(targetPaneId, "pi");
+          } else {
+            await promptAgent(targetPaneId, finalPrompt);
+          }
+
           if (ctx.hasUI) {
-            ctx.ui.notify(currentStrings.delegated(`${verdict.specialist} (${resolved.paneId})`), "info");
+            ctx.ui.notify(currentStrings.delegated(`${verdict.specialist} (${targetPaneId})`), "info");
           }
         } catch (err) {
           if (ctx.hasUI) {
@@ -191,9 +232,21 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
 
         try {
           const resolved = await resolveTarget(target, ctx.cwd);
-          await promptAgent(resolved.paneId, taskText);
+          let targetPaneId = resolved.paneId;
+
+          if (!resolved.hasAgent && target.toLowerCase() !== resolved.paneId.toLowerCase()) {
+            const projectDir = resolveProjectDirectory(target, ctx.cwd) || ctx.cwd;
+            targetPaneId = await splitPane({
+              cwd: projectDir,
+              direction: "right",
+            });
+            await runInPane(targetPaneId, "pi");
+          } else {
+            await promptAgent(targetPaneId, taskText);
+          }
+
           if (ctx.hasUI) {
-            ctx.ui.notify(currentStrings.delegated(`${target} (${resolved.paneId})`), "info");
+            ctx.ui.notify(currentStrings.delegated(`${target} (${targetPaneId})`), "info");
           }
         } catch (err) {
           if (ctx.hasUI) {

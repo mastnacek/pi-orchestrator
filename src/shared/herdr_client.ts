@@ -1,4 +1,6 @@
 import { execFile } from "node:child_process";
+import * as path from "node:path";
+import * as fs from "node:fs";
 import type { HerdrAgent, HerdrPane, HerdrTab } from "./types.ts";
 
 export function findHerdrBinary(): string {
@@ -71,6 +73,68 @@ export async function listTabs(cwd?: string): Promise<HerdrTab[]> {
   } catch (err) {
     throw new Error(`Failed to parse herdr tab list JSON: ${String(err)}`);
   }
+}
+
+export async function splitPane(options?: {
+  paneId?: string;
+  cwd?: string;
+  direction?: "right" | "down";
+  ratio?: number;
+  focus?: boolean;
+}): Promise<string> {
+  const args = ["pane", "split"];
+  if (options?.paneId) {
+    args.push(options.paneId);
+  } else {
+    args.push("--current");
+  }
+  args.push("--direction", options?.direction || "right");
+  if (options?.cwd) {
+    args.push("--cwd", options.cwd);
+  }
+  if (options?.ratio) {
+    args.push("--ratio", String(options.ratio));
+  }
+  if (options?.focus === false) {
+    args.push("--no-focus");
+  }
+
+  const res = await runHerdr(args);
+  if (res.code !== 0) {
+    throw new Error(`herdr pane split failed (code ${res.code}): ${res.stderr || res.stdout}`);
+  }
+  try {
+    const data = JSON.parse(res.stdout);
+    return data.result?.pane?.pane_id || data.result?.pane_id || res.stdout.trim();
+  } catch {
+    return res.stdout.trim();
+  }
+}
+
+export async function runInPane(paneId: string, command: string): Promise<string> {
+  const res = await runHerdr(["pane", "run", paneId, command]);
+  if (res.code !== 0) {
+    throw new Error(`herdr pane run failed (code ${res.code}): ${res.stderr || res.stdout}`);
+  }
+  return res.stdout.trim();
+}
+
+export function resolveProjectDirectory(
+  specialist: string,
+  cwd: string = process.cwd()
+): string | undefined {
+  const candidates = [
+    path.join(cwd, specialist),
+    path.join(cwd, "..", specialist),
+    path.join("D:/01_programovani/pi/plugins", specialist),
+    path.join("D:/01_programovani", specialist),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c) && fs.statSync(c).isDirectory()) {
+      return path.resolve(c);
+    }
+  }
+  return undefined;
 }
 
 export async function createTab(options: {

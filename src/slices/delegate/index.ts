@@ -4,7 +4,10 @@ import type { PluginState } from "../../shared/state.ts";
 import {
   currentPaneId,
   promptAgent,
+  resolveProjectDirectory,
   resolveTarget,
+  runInPane,
+  splitPane,
 } from "../../shared/herdr_client.ts";
 
 export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void {
@@ -42,7 +45,17 @@ export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void
     execute: async (_toolCallId, params, _signal, _onUpdate, ctx) => {
       try {
         const resolved = await resolveTarget(params.target, ctx.cwd);
-        const resolvedTarget = resolved.paneId;
+        let resolvedTarget = resolved.paneId;
+
+        // If no agent exists in the target and target isn't an explicit raw pane_id, split a new pane!
+        if (!resolved.hasAgent && params.target.toLowerCase() !== resolved.paneId.toLowerCase()) {
+          const projectDir = resolveProjectDirectory(params.target, ctx.cwd) || ctx.cwd;
+          resolvedTarget = await splitPane({
+            cwd: projectDir,
+            direction: "right",
+          });
+          await runInPane(resolvedTarget, "pi");
+        }
 
         const myPane = currentPaneId();
         if (myPane && resolvedTarget.toLowerCase() === myPane.toLowerCase()) {

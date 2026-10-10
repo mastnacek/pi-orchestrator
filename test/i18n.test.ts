@@ -22,6 +22,7 @@ test("every locale has a complete string table", () => {
 			"compAuto",
 			"compRoute",
 			"compDelegate",
+			"compSplit",
 			"compStatus",
 			"compLang",
 			"compLangEn",
@@ -34,6 +35,7 @@ test("every locale has a complete string table", () => {
 		assert.equal(typeof s.delegating("target"), "string");
 		assert.equal(typeof s.delegated("target"), "string");
 		assert.equal(typeof s.collecting("target"), "string");
+		assert.equal(typeof s.paneOpened("p1", "dir"), "string");
 	}
 });
 

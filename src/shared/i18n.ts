@@ -28,6 +28,8 @@ export interface Strings {
   compLang: string;
   compLangEn: string;
   compLangCs: string;
+  compSplit: string;
+  paneOpened: (paneId: string, dir: string) => string;
 }
 
 const en: Strings = {
@@ -55,6 +57,8 @@ const en: Strings = {
   compLang: "Switch language (en / cs)",
   compLangEn: "English",
   compLangCs: "Czech",
+  compSplit: "Split workspace into a new side-by-side pane",
+  paneOpened: (paneId, dir) => `Opened new pane ${paneId} (right split) in ${dir}`,
 };
 
 const cs: Strings = {
@@ -82,6 +86,8 @@ const cs: Strings = {
   compLang: "Přepnout jazyk (en / cs)",
   compLangEn: "Angličtina",
   compLangCs: "Čeština",
+  compSplit: "Rozdělit okno na nový boční panel",
+  paneOpened: (paneId, dir) => `Otevřen nový panel ${paneId} (vedle) v ${dir}`,
 };
 
 export function normalizeLocale(raw: string | undefined): Locale {
