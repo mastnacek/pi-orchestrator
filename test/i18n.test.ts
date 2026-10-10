@@ -23,6 +23,7 @@ test("every locale has a complete string table", () => {
 			"compRoute",
 			"compDelegate",
 			"compSplit",
+			"compRename",
 			"compStatus",
 			"compLang",
 			"compLangEn",
@@ -39,6 +40,7 @@ test("every locale has a complete string table", () => {
 		assert.equal(typeof s.delegated("target"), "string");
 		assert.equal(typeof s.collecting("target"), "string");
 		assert.equal(typeof s.paneOpened("p1", "dir"), "string");
+		assert.equal(typeof s.paneRenamed("p1", "label"), "string");
 		assert.equal(typeof s.dialogRouteTitle("pi-uma", 100, "w1:p1", "pi", "idle", 3), "string");
 		assert.equal(typeof s.optSendToPane("w1:p1", "pi", "idle"), "string");
 		assert.equal(typeof s.optOpenNewAndLaunch("pi-uma"), "string");

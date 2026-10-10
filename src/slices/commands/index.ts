@@ -7,6 +7,7 @@ import {
   isHerdrActive,
   listAgents,
   promptAgent,
+  renamePane,
   resolveProjectDirectory,
   resolveTarget,
   runInPane,
@@ -45,6 +46,11 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
             label: "split",
             value: "split ",
             description: cs.compSplit,
+          },
+          {
+            label: "rename",
+            value: "rename ",
+            description: cs.compRename,
           },
           {
             label: "status",
@@ -106,6 +112,26 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
         return;
       }
 
+      if (subcmd === "rename") {
+        const label = restText;
+        if (!label) {
+          if (ctx.hasUI) ctx.ui.notify("Usage: /orch rename <label>", "warning");
+          return;
+        }
+        const myPane = currentPaneId();
+        if (!myPane) {
+          if (ctx.hasUI) ctx.ui.notify("Cannot detect current pane ID", "warning");
+          return;
+        }
+        try {
+          await renamePane(myPane, label);
+          if (ctx.hasUI) ctx.ui.notify(currentStrings.paneRenamed(myPane, label), "info");
+        } catch (err) {
+          if (ctx.hasUI) ctx.ui.notify(`Failed to rename: ${String(err)}`, "error");
+        }
+        return;
+      }
+
       if (subcmd === "split") {
         const target = restText;
         const projectDir = target ? (resolveProjectDirectory(target, ctx.cwd) || target) : ctx.cwd;
@@ -114,6 +140,8 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
             cwd: projectDir,
             direction: "right",
           });
+          const paneLabel = target ? `Specialist: ${target}` : "Terminal";
+          await renamePane(newPaneId, paneLabel).catch(() => {});
           if (ctx.hasUI) {
             ctx.ui.notify(currentStrings.paneOpened(newPaneId, projectDir), "info");
           }
@@ -243,6 +271,7 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
                 cwd: projectDir,
                 direction: "right",
               });
+              await renamePane(targetPaneId, `Specialist: ${verdict.specialist}`).catch(() => {});
               await runInPane(targetPaneId, "pi");
               await waitForAgentReady(targetPaneId);
             }

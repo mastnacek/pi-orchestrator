@@ -29,7 +29,9 @@ export interface Strings {
   compLangEn: string;
   compLangCs: string;
   compSplit: string;
+  compRename: string;
   paneOpened: (paneId: string, dir: string) => string;
+  paneRenamed: (paneId: string, label: string) => string;
   dialogRouteTitle: (specialist: string, conf: number, pane: string, agent: string, status: string, facts: number) => string;
   optSendToPane: (pane: string, agent: string, status: string) => string;
   optSplitNew: string;
@@ -64,7 +66,9 @@ const en: Strings = {
   compLangEn: "English",
   compLangCs: "Czech",
   compSplit: "Split workspace into a new side-by-side pane",
+  compRename: "Rename current pane label",
   paneOpened: (paneId, dir) => `Opened new pane ${paneId} (right split) in ${dir}`,
+  paneRenamed: (paneId, label) => `Pane ${paneId} renamed to "${label}"`,
   dialogRouteTitle: (spec, conf, pane, agent, status, facts) =>
     `System-1 Route: ${spec} (${conf}%)\nPane: ${pane} [agent: ${agent}, status: ${status}]\nPre-warmed memory facts: ${facts}`,
   optSendToPane: (pane, agent, status) => `Send to existing pane (${pane} · ${agent} · ${status})`,
@@ -100,7 +104,9 @@ const cs: Strings = {
   compLangEn: "Angličtina",
   compLangCs: "Čeština",
   compSplit: "Rozdělit okno na nový boční panel",
+  compRename: "Přejmenovat popisek aktuálního panelu",
   paneOpened: (paneId, dir) => `Otevřen nový panel ${paneId} (vedle) v ${dir}`,
+  paneRenamed: (paneId, label) => `Panel ${paneId} přejmenován na "${label}"`,
   dialogRouteTitle: (spec, conf, pane, agent, status, facts) =>
     `System-1 Směrování: ${spec} (${conf}%)\nPanel: ${pane} [agent: ${agent}, stav: ${status}]\nPřipravená fakta z paměti: ${facts}`,
   optSendToPane: (pane, agent, status) => `Odeslat do existujícího panelu (${pane} · ${agent} · ${status})`,

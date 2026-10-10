@@ -119,6 +119,22 @@ export async function runInPane(paneId: string, command: string): Promise<string
   return res.stdout.trim();
 }
 
+export async function renamePane(paneId: string, label: string): Promise<string> {
+  const res = await runHerdr(["pane", "rename", paneId, label]);
+  if (res.code !== 0) {
+    throw new Error(`herdr pane rename failed (code ${res.code}): ${res.stderr || res.stdout}`);
+  }
+  return res.stdout.trim();
+}
+
+export async function renameTab(tabId: string, label: string): Promise<string> {
+  const res = await runHerdr(["tab", "rename", tabId, label]);
+  if (res.code !== 0) {
+    throw new Error(`herdr tab rename failed (code ${res.code}): ${res.stderr || res.stdout}`);
+  }
+  return res.stdout.trim();
+}
+
 export async function waitForAgentReady(
   paneId: string,
   maxWaitMs = 15000,
