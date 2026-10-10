@@ -119,6 +119,29 @@ export async function runInPane(paneId: string, command: string): Promise<string
   return res.stdout.trim();
 }
 
+export async function waitForAgentReady(
+  paneId: string,
+  maxWaitMs = 15000,
+  pollIntervalMs = 500
+): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < maxWaitMs) {
+    try {
+      const agents = await listAgents();
+      const match = agents.find(
+        (a) => a.pane_id.toLowerCase() === paneId.toLowerCase()
+      );
+      if (match && (match.agent_status === "idle" || match.agent_status === "working")) {
+        return true;
+      }
+    } catch {
+      // ignore transient polling errors
+    }
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+  return false;
+}
+
 export function resolveProjectDirectory(
   specialist: string,
   cwd: string = process.cwd()

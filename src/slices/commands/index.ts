@@ -11,6 +11,7 @@ import {
   resolveTarget,
   runInPane,
   splitPane,
+  waitForAgentReady,
 } from "../../shared/herdr_client.ts";
 
 export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
@@ -205,9 +206,10 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
               direction: "right",
             });
             await runInPane(targetPaneId, "pi");
-          } else {
-            await promptAgent(targetPaneId, finalPrompt);
+            await waitForAgentReady(targetPaneId);
           }
+
+          await promptAgent(targetPaneId, finalPrompt);
 
           if (ctx.hasUI) {
             ctx.ui.notify(currentStrings.delegated(`${verdict.specialist} (${targetPaneId})`), "info");
@@ -241,9 +243,10 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
               direction: "right",
             });
             await runInPane(targetPaneId, "pi");
-          } else {
-            await promptAgent(targetPaneId, taskText);
+            await waitForAgentReady(targetPaneId);
           }
+
+          await promptAgent(targetPaneId, taskText);
 
           if (ctx.hasUI) {
             ctx.ui.notify(currentStrings.delegated(`${target} (${targetPaneId})`), "info");

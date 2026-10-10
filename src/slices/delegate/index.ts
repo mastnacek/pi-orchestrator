@@ -8,6 +8,7 @@ import {
   resolveTarget,
   runInPane,
   splitPane,
+  waitForAgentReady,
 } from "../../shared/herdr_client.ts";
 
 export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void {
@@ -55,6 +56,7 @@ export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void
             direction: "right",
           });
           await runInPane(resolvedTarget, "pi");
+          await waitForAgentReady(resolvedTarget);
         }
 
         const myPane = currentPaneId();
