@@ -10,6 +10,7 @@ import {
   splitPane,
   waitForAgentReady,
 } from "../../shared/herdr_client.ts";
+import { buildPiLaunchCommand, getProfileFor } from "../../shared/config.ts";
 
 export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void {
   pi.registerTool({
@@ -55,7 +56,9 @@ export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void
             cwd: projectDir,
             direction: "right",
           });
-          await runInPane(resolvedTarget, "pi");
+          const profile = getProfileFor(params.target, state.config);
+          const launchCmd = buildPiLaunchCommand(profile);
+          await runInPane(resolvedTarget, launchCmd);
           await waitForAgentReady(resolvedTarget);
         }
 

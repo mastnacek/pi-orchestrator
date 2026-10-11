@@ -24,6 +24,12 @@ test("every locale has a complete string table", () => {
 			"compDelegate",
 			"compSplit",
 			"compRename",
+			"compProfile",
+			"compProfileList",
+			"compProfileSelect",
+			"compProfileSet",
+			"compProfileRemove",
+			"compProfileMenu",
 			"compStatus",
 			"compLang",
 			"compLangEn",
@@ -44,6 +50,10 @@ test("every locale has a complete string table", () => {
 		assert.equal(typeof s.dialogRouteTitle("pi-uma", 100, "w1:p1", "Label", "pi", "idle", 3), "string");
 		assert.equal(typeof s.optSendToPane("w1:p1", "Label", "pi", "idle"), "string");
 		assert.equal(typeof s.optOpenNewAndLaunch("pi-uma"), "string");
+		assert.equal(typeof s.profileSet("p1", "model"), "string");
+		assert.equal(typeof s.profileSelected("p1"), "string");
+		assert.equal(typeof s.profileRemoved("p1"), "string");
+		assert.equal(typeof s.profileNotFound("p1"), "string");
 	}
 });
 

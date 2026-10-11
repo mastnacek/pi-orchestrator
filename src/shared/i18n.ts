@@ -30,8 +30,18 @@ export interface Strings {
   compLangCs: string;
   compSplit: string;
   compRename: string;
+  compProfile: string;
+  compProfileList: string;
+  compProfileSelect: string;
+  compProfileSet: string;
+  compProfileRemove: string;
+  compProfileMenu: string;
   paneOpened: (paneId: string, dir: string) => string;
   paneRenamed: (paneId: string, label: string) => string;
+  profileSet: (name: string, model: string) => string;
+  profileSelected: (name: string) => string;
+  profileRemoved: (name: string) => string;
+  profileNotFound: (name: string) => string;
   dialogRouteTitle: (specialist: string, conf: number, pane: string, label: string | undefined, agent: string, status: string, facts: number) => string;
   optSendToPane: (pane: string, label: string | undefined, agent: string, status: string) => string;
   optSplitNew: string;
@@ -67,8 +77,18 @@ const en: Strings = {
   compLangCs: "Czech",
   compSplit: "Split workspace into a new side-by-side pane",
   compRename: "Rename current pane label",
+  compProfile: "Manage specialist agent profiles (model, thinking, prompts)",
+  compProfileList: "List all agent profiles",
+  compProfileSelect: "Set default agent profile",
+  compProfileSet: "Create or update a profile: /orch profile set <name> <model>",
+  compProfileRemove: "Remove an agent profile",
+  compProfileMenu: "Open interactive profile selector menu",
   paneOpened: (paneId, dir) => `Opened new pane ${paneId} (right split) in ${dir}`,
   paneRenamed: (paneId, label) => `Pane ${paneId} renamed to "${label}"`,
+  profileSet: (name, model) => `Profile "${name}" set with model ${model}`,
+  profileSelected: (name) => `Default profile set to "${name}"`,
+  profileRemoved: (name) => `Profile "${name}" removed`,
+  profileNotFound: (name) => `Profile "${name}" not found`,
   dialogRouteTitle: (spec, conf, pane, label, agent, status, facts) => {
     const labelStr = label ? ` "${label}"` : "";
     return `System-1 Route: ${spec} (${conf}%)\nPane: ${pane}${labelStr} [agent: ${agent}, status: ${status}]\nPre-warmed memory facts: ${facts}`;
@@ -110,8 +130,18 @@ const cs: Strings = {
   compLangCs: "Čeština",
   compSplit: "Rozdělit okno na nový boční panel",
   compRename: "Přejmenovat popisek aktuálního panelu",
+  compProfile: "Správa profilů agentů (model, thinking, prompty)",
+  compProfileList: "Výpis všech profilů agentů",
+  compProfileSelect: "Nastavit výchozí profil agenta",
+  compProfileSet: "Vytvořit nebo upravit profil: /orch profile set <název> <model>",
+  compProfileRemove: "Odebrat profil agenta",
+  compProfileMenu: "Otevřít interaktivní menu profilů",
   paneOpened: (paneId, dir) => `Otevřen nový panel ${paneId} (vedle) v ${dir}`,
   paneRenamed: (paneId, label) => `Panel ${paneId} přejmenován na "${label}"`,
+  profileSet: (name, model) => `Profil "${name}" nastaven s modelem ${model}`,
+  profileSelected: (name) => `Výchozí profil nastaven na "${name}"`,
+  profileRemoved: (name) => `Profil "${name}" odebrán`,
+  profileNotFound: (name) => `Profil "${name}" nenalezen`,
   dialogRouteTitle: (spec, conf, pane, label, agent, status, facts) => {
     const labelStr = label ? ` "${label}"` : "";
     return `System-1 Směrování: ${spec} (${conf}%)\nPanel: ${pane}${labelStr} [agent: ${agent}, stav: ${status}]\nPřipravená fakta z paměti: ${facts}`;

@@ -14,6 +14,8 @@ import {
   splitPane,
   waitForAgentReady,
 } from "../../shared/herdr_client.ts";
+import { buildPiLaunchCommand, getProfileFor } from "../../shared/config.ts";
+import { getProfileCompletions, handleProfileCommand } from "./profile.ts";
 
 export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
   const s = stringsFor(state.lang);
@@ -53,6 +55,11 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
             description: cs.compRename,
           },
           {
+            label: "profile",
+            value: "profile ",
+            description: cs.compProfile,
+          },
+          {
             label: "status",
             value: "status",
             description: cs.compStatus,
@@ -64,6 +71,10 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
           },
         ];
         return subcommands.filter((sub) => sub.label.startsWith(parts[0]));
+      }
+
+      if (parts[0] === "profile") {
+        return getProfileCompletions(parts, state);
       }
 
       if (parts[0] === "lang") {
@@ -101,6 +112,11 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
 
       const [subcmd, ...rest] = args.split(/\s+/);
       const restText = rest.join(" ").trim();
+
+      if (subcmd === "profile") {
+        await handleProfileCommand(restText, ctx, state);
+        return;
+      }
 
       if (subcmd === "lang") {
         if (restText === "en" || restText === "cs") {
@@ -142,6 +158,9 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
           });
           const paneLabel = target ? `Specialist: ${target}` : "Terminal";
           await renamePane(newPaneId, paneLabel).catch(() => {});
+          const profile = target ? getProfileFor(target, state.config) : undefined;
+          const launchCmd = buildPiLaunchCommand(profile);
+          await runInPane(newPaneId, launchCmd);
           if (ctx.hasUI) {
             ctx.ui.notify(currentStrings.paneOpened(newPaneId, projectDir), "info");
           }
@@ -274,7 +293,9 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
                 direction: "right",
               });
               await renamePane(targetPaneId, `Specialist: ${verdict.specialist}`).catch(() => {});
-              await runInPane(targetPaneId, "pi");
+              const profile = getProfileFor(verdict.specialist, state.config);
+              const launchCmd = buildPiLaunchCommand(profile);
+              await runInPane(targetPaneId, launchCmd);
               await waitForAgentReady(targetPaneId);
             }
           } else {
@@ -285,7 +306,9 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
                 cwd: projectDir,
                 direction: "right",
               });
-              await runInPane(targetPaneId, "pi");
+              const profile = getProfileFor(verdict.specialist, state.config);
+              const launchCmd = buildPiLaunchCommand(profile);
+              await runInPane(targetPaneId, launchCmd);
               await waitForAgentReady(targetPaneId);
             }
           }
@@ -323,7 +346,9 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
               cwd: projectDir,
               direction: "right",
             });
-            await runInPane(targetPaneId, "pi");
+            const profile = getProfileFor(target, state.config);
+            const launchCmd = buildPiLaunchCommand(profile);
+            await runInPane(targetPaneId, launchCmd);
             await waitForAgentReady(targetPaneId);
           }
 

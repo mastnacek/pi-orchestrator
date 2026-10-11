@@ -35,6 +35,13 @@ Frontier models are expensive. The premise of the memory orchestrator is that an
 - `/orch auto <prompt>` — Evaluates route; if confident, summarizes and delegates to the target specialist.
 - `/orch route <prompt>` — Displays the System-1 routing verdict, confidence score, and recalled context slice facts without delegating.
 - `/orch delegate <target> <prompt>` — Manually delegates a prompt to a named specialist or pane ID.
+- `/orch split [target]` — Splits workspace into a new side-by-side pane for the specialist and launches Pi.
+- `/orch rename <label>` — Renames the current pane in Herdr.
+- `/orch profile` — Interactive profile selector menu and manager.
+  - `/orch profile list` — List all defined specialist profiles.
+  - `/orch profile select <name>` — Set the default agent profile.
+  - `/orch profile set <name> <model>` — Create/update a profile with a model.
+  - `/orch profile remove <name>` — Remove an agent profile.
 - `/orch status` — Shows active Herdr multiplexer panes, tabs, and agents.
 - `/orch lang [en|cs]` — Switch between English and Czech.
 
