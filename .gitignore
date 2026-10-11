@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+
+# External study reference repositories
+docs/zdroje/*
+!docs/zdroje/MULTI_AGENT_STUDY.md
