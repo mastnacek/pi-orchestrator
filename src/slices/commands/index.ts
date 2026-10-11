@@ -1,22 +1,22 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { stringsFor, type Locale } from "../../shared/i18n.ts";
+import { stringsFor } from "../../shared/i18n.ts";
 import type { PluginState } from "../../shared/state.ts";
-import { checkRoute } from "../../shared/uma_client.ts";
 import {
   currentPaneId,
-  isHerdrActive,
-  listAgents,
-  promptAgent,
   renamePane,
   resolveProjectDirectory,
-  resolveTarget,
   runInPane,
   splitPane,
-  waitForAgentReady,
 } from "../../shared/herdr_client.ts";
 import { buildPiLaunchCommand, getProfileFor } from "../../shared/config.ts";
 import { getProfileCompletions, handleProfileCommand } from "./profile.ts";
 import { getSettingsCompletions, handleSettingsCommand } from "./settings.ts";
+import {
+  handleAutoCommand,
+  handleDelegateCommand,
+  handleRouteCommand,
+  handleStatusCommand,
+} from "./handlers.ts";
 
 export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
   const s = stringsFor(state.lang);
@@ -108,22 +108,7 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
       const args = rawArgs.trim();
 
       if (!args || args === "status") {
-        const active = isHerdrActive();
-        const myPane = currentPaneId();
-        const agents = await listAgents(ctx.cwd).catch(() => []);
-
-        const lines = [
-          `── Herdr Orchestrator Status ──`,
-          `Herdr active: ${active ? "yes (HERDR_ENV=1)" : "no"}`,
-          `Orchestrator pane: ${myPane || "unknown"}`,
-          `Agents (${agents.length}):`,
-        ];
-        for (const a of agents) {
-          lines.push(`  • ${a.agent} [${a.agent_status}] in ${a.pane_id} (${a.cwd || ""})`);
-        }
-        if (ctx.hasUI) {
-          ctx.ui.notify(lines.join("\n"), "info");
-        }
+        await handleStatusCommand(ctx, state);
         return;
       }
 
@@ -192,156 +177,12 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
       }
 
       if (subcmd === "route") {
-        if (!restText) {
-          if (ctx.hasUI) ctx.ui.notify(currentStrings.usageRoute, "warning");
-          return;
-        }
-
-        try {
-          const verdict = await checkRoute(restText, ctx.cwd);
-          state.lastVerdict = verdict;
-
-          const lines = [
-            `── ${currentStrings.routeTitle} ──`,
-            verdict.specialist
-              ? `Winner: ${verdict.specialist} (${(verdict.confidence * 100).toFixed(0)}%, judge: ${verdict.judged_by})`
-              : `${currentStrings.noRoute} (runner-up: ${verdict.runner_up || "none"})`,
-          ];
-          if (verdict.context_slice.length > 0) {
-            lines.push(`Context slice facts (${verdict.context_slice.length}):`);
-            for (const f of verdict.context_slice) {
-              lines.push(`  • [${f.fact_type}] ${f.title}`);
-            }
-          }
-          if (ctx.hasUI) {
-            ctx.ui.notify(lines.join("\n"), verdict.specialist ? "info" : "warning");
-          }
-        } catch (err) {
-          if (ctx.hasUI) {
-            ctx.ui.notify(`Route error: ${String(err)}`, "error");
-          }
-        }
+        await handleRouteCommand(restText, ctx, state);
         return;
       }
 
       if (subcmd === "auto") {
-        if (!restText) {
-          if (ctx.hasUI) ctx.ui.notify(currentStrings.usageAuto, "warning");
-          return;
-        }
-
-        try {
-          const verdict = await checkRoute(restText, ctx.cwd);
-          state.lastVerdict = verdict;
-
-          if (!verdict.specialist) {
-            if (ctx.hasUI) {
-              ctx.ui.notify(
-                `${currentStrings.noRoute}\nRunner-up: ${verdict.runner_up || "none"}\nPlease use manual delegation or rephrase.`,
-                "warning"
-              );
-            }
-            return;
-          }
-
-          // Confident route -> delegate
-          if (ctx.hasUI) {
-            ctx.ui.notify(
-              `Routing to ${verdict.specialist} (${(verdict.confidence * 100).toFixed(0)}%)...\nDelegating prompt.`,
-              "info"
-            );
-          }
-
-          let finalPrompt = restText;
-          if (verdict.context_slice.length > 0) {
-            const ctxLines = verdict.context_slice.map(
-              (f, i) => `  ${i + 1}. [${f.fact_type}] ${f.title} (${f.id})`
-            );
-            finalPrompt = `[UMA Context Slice]:\n${ctxLines.join("\n")}\n\n[Task]:\n${restText}`;
-          }
-
-          const resolved = await resolveTarget(verdict.specialist, ctx.cwd);
-          let targetPaneId = resolved.paneId;
-
-          if (ctx.hasUI) {
-            const confPct = Math.round(verdict.confidence * 100);
-            const dialogTitle = currentStrings.dialogRouteTitle(
-              verdict.specialist,
-              confPct,
-              resolved.paneId,
-              resolved.paneLabel,
-              resolved.agentKind || "none",
-              resolved.agentStatus || "none",
-              verdict.context_slice.length
-            );
-
-            let options: string[] = [];
-            if (resolved.hasAgent) {
-              options = [
-                currentStrings.optSendToPane(
-                  resolved.paneId,
-                  resolved.paneLabel,
-                  resolved.agentKind || "agent",
-                  resolved.agentStatus || "idle"
-                ),
-                currentStrings.optSplitNew,
-                currentStrings.optCancel,
-              ];
-            } else {
-              options = [
-                currentStrings.optOpenNewAndLaunch(verdict.specialist),
-                currentStrings.optCancel,
-              ];
-            }
-
-            const choice = await ctx.ui.select(dialogTitle, options);
-            if (!choice || choice === currentStrings.optCancel) {
-              ctx.ui.notify(currentStrings.delegationCancelled, "info");
-              return;
-            }
-
-            if (
-              choice === currentStrings.optSplitNew ||
-              choice === currentStrings.optOpenNewAndLaunch(verdict.specialist)
-            ) {
-              const projectDir =
-                resolveProjectDirectory(verdict.specialist, ctx.cwd) || ctx.cwd;
-              ctx.ui.notify(`Opening new pane for ${verdict.specialist}...`, "info");
-              targetPaneId = await splitPane({
-                cwd: projectDir,
-                direction: "right",
-              });
-              await renamePane(targetPaneId, `Specialist: ${verdict.specialist}`).catch(() => {});
-              const profile = getProfileFor(verdict.specialist, state.config);
-              const launchCmd = buildPiLaunchCommand(profile);
-              await runInPane(targetPaneId, launchCmd);
-              await waitForAgentReady(targetPaneId);
-            }
-          } else {
-            if (!resolved.hasAgent) {
-              const projectDir =
-                resolveProjectDirectory(verdict.specialist, ctx.cwd) || ctx.cwd;
-              targetPaneId = await splitPane({
-                cwd: projectDir,
-                direction: "right",
-              });
-              const profile = getProfileFor(verdict.specialist, state.config);
-              const launchCmd = buildPiLaunchCommand(profile);
-              await runInPane(targetPaneId, launchCmd);
-              await waitForAgentReady(targetPaneId);
-            }
-          }
-
-          await promptAgent(targetPaneId, finalPrompt);
-
-          if (ctx.hasUI) {
-            ctx.ui.notify(currentStrings.delegated(`${verdict.specialist} (${targetPaneId})`), "info");
-          }
-        } catch (err) {
-          if (ctx.hasUI) {
-            ctx.ui.notify(`Auto route failed: ${String(err)}`, "error");
-          }
-        }
+        await handleAutoCommand(restText, ctx, state);
         return;
       }
 
@@ -354,33 +195,7 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
           }
           return;
         }
-
-        try {
-          const resolved = await resolveTarget(target, ctx.cwd);
-          let targetPaneId = resolved.paneId;
-
-          if (!resolved.hasAgent && target.toLowerCase() !== resolved.paneId.toLowerCase()) {
-            const projectDir = resolveProjectDirectory(target, ctx.cwd) || ctx.cwd;
-            targetPaneId = await splitPane({
-              cwd: projectDir,
-              direction: "right",
-            });
-            const profile = getProfileFor(target, state.config);
-            const launchCmd = buildPiLaunchCommand(profile);
-            await runInPane(targetPaneId, launchCmd);
-            await waitForAgentReady(targetPaneId);
-          }
-
-          await promptAgent(targetPaneId, taskText);
-
-          if (ctx.hasUI) {
-            ctx.ui.notify(currentStrings.delegated(`${target} (${targetPaneId})`), "info");
-          }
-        } catch (err) {
-          if (ctx.hasUI) {
-            ctx.ui.notify(`Delegation failed: ${String(err)}`, "error");
-          }
-        }
+        await handleDelegateCommand(target, taskText, ctx, state);
         return;
       }
 

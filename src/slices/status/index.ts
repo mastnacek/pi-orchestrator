@@ -26,21 +26,26 @@ export function registerStatusTool(pi: ExtensionAPI, _state: PluginState): void 
           listTabs(ctx.cwd).catch(() => []),
         ]);
 
+        const myPaneLabel = panes.find((p) => p.pane_id.toLowerCase() === (myPane || "").toLowerCase())?.label;
+        const activeWs = panes[0]?.workspace_id || "default";
+
         const lines: string[] = [
+          `── Herdr Orchestrator Status ──`,
           `Herdr multiplexer: ${active ? "active (HERDR_ENV=1)" : "offline/detached"}`,
-          `Orchestrator pane: ${myPane || "unknown"}`,
-          `\nLive agents (${agents.length}):`,
+          `Active workspace: ${activeWs}`,
+          `Orchestrator pane: ${myPane || "unknown"}${myPaneLabel ? ` ("${myPaneLabel}")` : ""}`,
+          `\nActive Panes & Agents (${panes.length} pane(s), ${agents.length} agent(s)):`,
         ];
 
-        if (agents.length === 0) {
-          lines.push("  (no active agents reported by Herdr)");
+        if (panes.length === 0) {
+          lines.push("  (no active panes reported by Herdr)");
         } else {
-          for (const a of agents) {
-            const isSelf = myPane && a.pane_id.toLowerCase() === myPane.toLowerCase();
-            lines.push(
-              `  - ${a.agent} [${a.agent_status}] in pane ${a.pane_id} (tab ${a.tab_id})${isSelf ? " [ORCHESTRATOR SELF]" : ""}`
-            );
-            if (a.cwd) lines.push(`    cwd: ${a.cwd}`);
+          for (const p of panes) {
+            const isSelf = myPane && p.pane_id.toLowerCase() === myPane.toLowerCase();
+            const labelStr = p.label ? ` "${p.label}"` : "";
+            const agentStr = p.agent ? ` [agent: ${p.agent}, status: ${p.agent_status || "unknown"}]` : " [terminal shell]";
+            lines.push(`  • Pane ${p.pane_id}${labelStr}${agentStr}${isSelf ? " [ORCHESTRATOR SELF]" : ""}`);
+            if (p.cwd) lines.push(`    cwd: ${p.cwd}`);
           }
         }
 
@@ -48,6 +53,12 @@ export function registerStatusTool(pi: ExtensionAPI, _state: PluginState): void 
         for (const t of tabs) {
           lines.push(`  - Tab #${t.number} (${t.tab_id}): label="${t.label || ""}", panes=${t.pane_count}`);
         }
+
+        lines.push(`\nWorkflow Quick Examples:`);
+        lines.push(`  • /orch auto "zkontroluj AST kontrakty v pi-uma"`);
+        lines.push(`  • /orch split pi-uma`);
+        lines.push(`  • /orch rename "Hlavní dispečer"`);
+        lines.push(`  • /orch profile select pi-uma`);
 
         return {
           content: [{ type: "text", text: lines.join("\n") }],

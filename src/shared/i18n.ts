@@ -112,36 +112,46 @@ const en: Strings = {
   • Instead of opaque subagents, it opens visible side-by-side terminal panes in the Herdr multiplexer.
   • You can watch each delegate work in real time and switch into their pane at any moment.
 
-2. SYSTEM-1 TASK ROUTING (FASTBRAIN ROUTE)
-  • /orch route <prompt>
-    - Previews task routing: shows winner specialist, confidence score, and pre-warmed context slice facts.
-    - Runs locally (0 ms, 0 cost) matching known project domains.
-  • /orch auto <prompt>
-    - Full tiered routing with confirmation.
-    - Displays an interactive modal dialog showing target pane, name, and live lifecycle status (idle, working).
-    - Upon confirmation, auto-submits the prompt with Enter keypress.
+2. SYSTEM-1 TASK ROUTING WITH EXAMPLES
+  • /orch route "fix WAL in pi-uma"
+    → Previews routing: shows winner (pi-uma 100%), confidence score, and context slice facts without delegating.
+  • /orch auto "check AST contracts in pi-uma"
+    → Full automated routing: selects specialist, displays confirmation modal with pane details, and submits.
+  • /orch delegate w1Y:p2Q "what is the memory status?"
+    → Direct delegation to a specific Herdr pane ID or live agent.
 
-3. AGENT PROFILES (MODELS & THINKING)
+3. PANE MANAGEMENT & LABELS (HERDR)
+  • /orch split pi-uma
+    → Splits workspace into a side-by-side pane to the right and starts Pi in D:\\01_programovani\\pi\\plugins\\pi-uma.
+  • /orch rename "Main Dispatcher"
+    → Renames the current pane in Herdr for clear visual orientation.
+
+4. REAL STATUS OUTPUT EXAMPLE (/orch status)
+  • /orch status outputs real multiplexer topology:
+    ── Herdr Orchestrator Status ──
+    Herdr active: yes (HERDR_ENV=1)
+    Orchestrator pane: w1Z:p4 ("Main Dispatcher")
+    Panes & Agents:
+      • Pane w1Z:p4 "Main Dispatcher" [agent: pi, status: working]
+      • Pane w1Z:p9 "Specialist: pi-uma" [agent: pi, status: idle]
+      • Pane w1Y:p2Q "Researcher" [agent: agy, status: idle]
+
+5. AGENT PROFILES (MODELS & THINKING)
   • /orch profile (or /orch profile menu)
-    - Interactive selector to browse and activate specialist profiles.
+    → Interactive selector to browse and activate specialist profiles.
   • /orch profile list
-    - Lists all configured profiles with models, thinking levels, and system prompt additions.
-  • /orch profile select <name> [--global]
-    - Sets the default agent profile (fast, frontier, pi-uma, mozek_rust).
-  • /orch profile set <name> <model> [--global]
-    - Creates or updates an agent profile.
+    → Lists all configured profiles with models, thinking levels, and system prompts.
+  • /orch profile select pi-uma [--global]
+    → Sets the default agent profile.
+  • /orch profile set custom-agent anthropic/claude-3-7-sonnet [--global]
+    → Creates or updates an agent profile.
 
-4. PANE MANAGEMENT & LABELS
-  • /orch split [specialist]
-    - Splits the workspace side-by-side and launches Pi in the specialist's directory.
-  • /orch rename <label>
-    - Renames the current pane in Herdr for easier orientation.
-  • /orch status
-    - Shows live overview of Herdr workspaces, tabs, panes, and agent lifecycle states.
-  • /orch delegate <target> <prompt>
-    - Manually delegates a prompt to a named agent or pane ID.
+6. BEHAVIOR SWITCHES
+  • /orch auto-confirm on|off  — Toggle automatic Enter submission after prompt paste.
+  • /orch direction right|down — Set pane split direction (side-by-side vs stacked).
+  • /orch lang cs|en           — Switch interface language.
 
-Tip: Add --global to persist settings to ~/.pi/agent/orchestrator.json across all sessions.`,
+Tip: Add --global to persist settings across all sessions to ~/.pi/agent/orchestrator.json.`,
   paneOpened: (paneId, dir) => `Opened new pane ${paneId} (right split) in ${dir}`,
   paneRenamed: (paneId, label) => `Pane ${paneId} renamed to "${label}"`,
   profileSet: (name, model) => `Profile "${name}" set with model ${model}`,
@@ -214,34 +224,44 @@ const cs: Strings = {
   • Místo slepých jednorázových subagentů otevírá vedlejší panely (panes) v Herdr multiplexeru přímo vedle vás.
   • Každého delegáta můžete sledovat v reálném čase a kdykoliv mu vstoupit do okna.
 
-2. SYSTEM-1 SMĚROVÁNÍ ÚKOLŮ (FASTBRAIN ROUTE)
-  • /orch route <prompt>
-    - Pouze otestuje směrování: ukáže vítězného specialistu, skóre jistoty a fakta z paměti (context slice).
-    - Běží lokálně (0 ms, 0 Kč) podle známých domén.
-  • /orch auto <prompt>
-    - Plné automatické směrování.
-    - Zobrazí interaktivní potvrzovací okno s názvem cílového panelu a jeho stavem (idle, working).
-    - Po schválení odešle úkol delegátovi a automaticky stiskne Enter.
+2. SYSTEM-1 SMĚROVÁNÍ ÚKOLŮ S PŘÍKLADY
+  • /orch route "oprav WAL v pi-uma"
+    → Pouze otestuje směrování: ukáže specialistu (pi-uma 100%), skóre a relevantní fakta z paměti bez odeslání.
+  • /orch auto "zkontroluj AST kontrakty v pi-uma"
+    → Plné automatické směrování: vybere specialistu, zobrazí modální okno s detaily panelu a po schválení odešle prompt.
+  • /orch delegate w1Y:p2Q "jaký je stav paměti?"
+    → Ruční přímé odeslání úkolu na konkrétní panel ID nebo jméno agenta v Herdr.
 
-3. PROFILY AGENTŮ (MODELY A THINKING)
+3. ROZDĚLENÍ A POJMENOVÁNÍ PANELŮ (HERDR)
+  • /orch split pi-uma
+    → Rozdělí okno na vedlejší panel (side-by-side doprava) a spustí Pi v adresáři D:\\01_programovani\\pi\\plugins\\pi-uma.
+  • /orch rename "Hlavní dispečer"
+    → Přejmenuje aktuální panel v Herdr pro snadnou vizuální orientaci.
+
+4. PŘÍKLAD VÝSTUPU ZE STAVU MULTIPLEXERU (/orch status)
+  • /orch status vypíše reálnou topologii:
+    ── Herdr Orchestrator Status ──
+    Herdr active: yes (HERDR_ENV=1)
+    Orchestrator pane: w1Z:p4 ("Hlavní dispečer")
+    Panely a agenti:
+      • Panel w1Z:p4 "Hlavní dispečer" [agent: pi, stav: working]
+      • Panel w1Z:p9 "Specialist: pi-uma" [agent: pi, stav: idle]
+      • Panel w1Y:p2Q "Researcher" [agent: agy, stav: idle]
+
+5. PROFILY AGENTŮ (MODELY A THINKING)
   • /orch profile (nebo /orch profile menu)
-    - Otevře interaktivní menu pro výběr a správu profilů.
+    → Otevře interaktivní TUI menu se seznamem profilů pro rychlý výběr.
   • /orch profile list
-    - Vypíše všechny definované profily (model, thinking, system prompt).
-  • /orch profile select <profil> [--global]
-    - Nastaví výchozí profil agenta (např. fast, frontier, pi-uma, mozek_rust).
-  • /orch profile set <název> <model> [--global]
-    - Vytvoří nebo upraví profil pro konkrétního specialistu.
+    → Vypíše všechny definované profily (pi-uma, mozek_rust, fast, frontier).
+  • /orch profile select pi-uma [--global]
+    → Nastaví výchozí profil agenta.
+  • /orch profile set custom-agent anthropic/claude-3-7-sonnet [--global]
+    → Vytvoří nebo upraví profil specialisty.
 
-4. SPRÁVA A POJMENOVÁNÍ PANELŮ
-  • /orch split [specialista]
-    - Ručně rozdělí okno na nový vedlejší panel (side-by-side) a spustí Pi v daném projektu.
-  • /orch rename <název>
-    - Přejmenuje aktuální panel v Herdr pro snazší orientaci.
-  • /orch status
-    - Zobrazí přehled všech aktivních agentů, panelů a jejich životních cyklů.
-  • /orch delegate <cíl> <úkol>
-    - Ručně deleguje úkol na konkrétního agenta nebo panel.
+6. PŘEPÍNAČE CHOVÁNÍ
+  • /orch auto-confirm on|off  — Automatické odeslání klávesou Enter ihned po vložení promptu.
+  • /orch direction right|down — Směr rozdělení nového panelu (vedle sebe vs. pod sebe).
+  • /orch lang cs|en           — Přepnutí jazyka rozhraní.
 
 Tip: Přidejte přepínač --global pro trvalé uložení do ~/.pi/agent/orchestrator.json.`,
   paneOpened: (paneId, dir) => `Otevřen nový panel ${paneId} (vedle) v ${dir}`,
