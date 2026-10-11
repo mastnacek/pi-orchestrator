@@ -4,12 +4,32 @@ import * as os from "node:os";
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
+/**
+ * A Soul-bound agent role profile.
+ *
+ * The soul (a markdown file under `souls/`) carries the role's identity and
+ * prohibitions; the profile carries the STRUCTURAL enforcement — which tools
+ * the process may call at all (`tools` allowlist), how hard it may think
+ * (`thinking`), and which model it runs on. Prose declares intent; flags make
+ * it impossible to violate.
+ */
 export interface AgentProfile {
   name: string;
   model?: string;
   provider?: string;
   thinking?: ThinkingLevel;
+  /** Allowlist of Pi tool names. Empty/undefined = Pi defaults. */
+  tools?: string[];
+  /** Extra tools to deny even if granted elsewhere (e.g. write, edit). */
+  excludeTools?: string[];
+  /** Soul file stem under souls/ (defaults to the profile name). */
+  soul?: string;
+  /** Append arbitrary text instead of/in addition to a soul file. */
   appendSystemPrompt?: string;
+  /** Context isolation: skip skills / extensions / AGENTS.md discovery. */
+  noSkills?: boolean;
+  noExtensions?: boolean;
+  noContextFiles?: boolean;
   cwd?: string;
 }
 
@@ -20,20 +40,46 @@ export interface OrchestratorConfig {
   autoConfirm: boolean;
 }
 
+/** Read-only tool allowlist shared by every reconnaissance role. */
+const READ_ONLY_TOOLS = ["read", "ls", "find", "grep"];
+
+/**
+ * The default role roster.
+ *
+ * Modelled on the strongest multi-agent systems surveyed (pi-herdsman,
+ * oh-my-opencode-slim, herdr-projects, VoltAgent): cheap read-only scouts feed
+ * precise facts to expensive writers, and independent read-only reviewers
+ * guard the result.
+ */
 export const DEFAULT_PROFILES: Record<string, AgentProfile> = {
   scout: {
     name: "scout",
     provider: "openrouter-soukr",
     model: "nvidia/nemotron-3-ultra-550b-a55b:free",
     thinking: "off",
+    tools: READ_ONLY_TOOLS,
+    noSkills: true,
+    noExtensions: true,
+  },
+  librarian: {
+    name: "librarian",
+    provider: "openrouter-soukr",
+    model: "google/gemini-2.5-flash",
+    thinking: "low",
+    tools: ["read", "ls", "find", "grep", "bash"],
   },
   implementer: {
     name: "implementer",
     model: "anthropic/claude-3-7-sonnet",
     thinking: "high",
   },
-  reviewer: {
-    name: "reviewer",
+  fixer: {
+    name: "fixer",
+    model: "google/gemini-2.5-flash",
+    thinking: "low",
+  },
+  frontend: {
+    name: "frontend",
     model: "anthropic/claude-3-7-sonnet",
     thinking: "high",
   },
@@ -41,27 +87,26 @@ export const DEFAULT_PROFILES: Record<string, AgentProfile> = {
     name: "oracle",
     model: "anthropic/claude-3-7-sonnet",
     thinking: "high",
+    tools: READ_ONLY_TOOLS,
+    noExtensions: true,
   },
-  fixer: {
-    name: "fixer",
-    model: "google/gemini-2.5-flash",
-    thinking: "off",
-  },
-  frontend: {
-    name: "frontend",
+  reviewer: {
+    name: "reviewer",
     model: "anthropic/claude-3-7-sonnet",
     thinking: "high",
-  },
-  lotus: {
-    name: "lotus",
-    model: "anthropic/claude-3-7-sonnet",
-    thinking: "high",
+    tools: READ_ONLY_TOOLS,
+    noExtensions: true,
   },
   curator: {
     name: "curator",
     provider: "openrouter-soukr",
     model: "nvidia/nemotron-3-ultra-550b-a55b:free",
     thinking: "off",
+  },
+  lotus: {
+    name: "lotus",
+    model: "anthropic/claude-3-7-sonnet",
+    thinking: "high",
   },
   "pi-uma": {
     name: "pi-uma",
@@ -105,7 +150,6 @@ export function getConfigPath(isGlobal = true, cwd?: string): string {
 
 export function loadConfig(cwd?: string): OrchestratorConfig {
   const defaults = getDefaultConfig();
-  // Try loading global config first
   const globalPath = getConfigPath(true);
   let resolved = { ...defaults };
   try {
@@ -121,7 +165,6 @@ export function loadConfig(cwd?: string): OrchestratorConfig {
     // Ignore error
   }
 
-  // Then overlay project config if it exists
   if (cwd) {
     const projectPath = getConfigPath(false, cwd);
     try {
@@ -166,6 +209,7 @@ export function getProfileFor(
   return undefined;
 }
 
+/** Resolves a role's soul markdown file, or undefined when none is installed. */
 export function getSoulPath(role: string): string | undefined {
   const baseDir = import.meta.dirname || "";
   const cleanName = role.toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -173,7 +217,6 @@ export function getSoulPath(role: string): string | undefined {
     path.join(baseDir, "..", "..", "souls", `${cleanName}.md`),
     path.join(baseDir, "..", "souls", `${cleanName}.md`),
     path.join(process.cwd(), "souls", `${cleanName}.md`),
-    path.join("D:/01_programovani/pi/plugins/pi-orchestrator/souls", `${cleanName}.md`),
   ];
   for (const c of candidates) {
     if (fs.existsSync(c)) {
@@ -183,22 +226,37 @@ export function getSoulPath(role: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Builds the `pi` launch command for a role.
+ *
+ * Thinking is passed through the dedicated `--thinking` flag rather than a
+ * model suffix: a variant id such as `...:free` would otherwise collide with
+ * the `:thinking` shorthand and produce an unparseable `:free:off`.
+ */
 export function buildPiLaunchCommand(profile?: AgentProfile): string {
   if (!profile) return "pi";
   const parts = ["pi"];
+
   if (profile.provider) {
     parts.push("--provider", profile.provider);
   }
   if (profile.model) {
-    const thinkingSuffixes = [":off", ":minimal", ":low", ":medium", ":high", ":xhigh", ":max"];
-    const hasThinking = thinkingSuffixes.some((s) => profile.model!.toLowerCase().endsWith(s));
-    const modelArg =
-      profile.thinking && !hasThinking
-        ? `${profile.model}:${profile.thinking}`
-        : profile.model;
-    parts.push("--model", modelArg);
+    parts.push("--model", profile.model);
   }
-  const soulPath = profile.appendSystemPrompt || getSoulPath(profile.name);
+  if (profile.thinking) {
+    parts.push("--thinking", profile.thinking);
+  }
+  if (profile.tools && profile.tools.length > 0) {
+    parts.push("--tools", profile.tools.join(","));
+  }
+  if (profile.excludeTools && profile.excludeTools.length > 0) {
+    parts.push("--exclude-tools", profile.excludeTools.join(","));
+  }
+  if (profile.noSkills) parts.push("--no-skills");
+  if (profile.noExtensions) parts.push("--no-extensions");
+  if (profile.noContextFiles) parts.push("--no-context-files");
+
+  const soulPath = profile.appendSystemPrompt || getSoulPath(profile.soul || profile.name);
   if (soulPath) {
     parts.push("--append-system-prompt", `"${soulPath.replace(/"/g, '\\"')}"`);
   }

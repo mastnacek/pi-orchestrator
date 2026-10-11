@@ -19,6 +19,32 @@ Frontier models are expensive. The premise of the memory orchestrator is that an
 
 ---
 
+## 🎭 Soul-bound Agent Roles
+
+Every role profile pairs a **soul** (identity, prohibitions, output contract in `souls/<role>.md`) with **structural enforcement** — the boundary is imposed by `--tools` allowlists, not merely requested in prose:
+
+| Layer | Role | Model | Thinking | Tools |
+|---|---|---|---|---|
+| Recon | `scout` | nemotron-3-ultra:free | off | `read,ls,find,grep` |
+| Recon | `librarian` | gemini-2.5-flash | low | `read,ls,find,grep,bash` |
+| Execution | `implementer` | claude-3-7-sonnet | high | full |
+| Execution | `fixer` | gemini-2.5-flash | low | full |
+| Execution | `frontend` | claude-3-7-sonnet | high | full |
+| Execution | `lotus` | claude-3-7-sonnet | high | full + MCP |
+| Control | `reviewer` | claude-3-7-sonnet | high | `read,ls,find,grep` |
+| Control | `oracle` | claude-3-7-sonnet | high | `read,ls,find,grep` |
+| Memory | `curator` | nemotron-3-ultra:free | off | `uma_*` |
+
+A scout launched with `--tools read,ls,find,grep` **cannot** call `edit` or `write` even if the model asks. Full catalog: [`docs/ROLES.md`](docs/ROLES.md).
+
+```bash
+/orch profile list                   # list roles with models and tool grants
+/orch split scout                    # open a read-only recon pane (free)
+/orch split reviewer                 # open an independent review pane
+```
+
+---
+
 ## 🛠️ Custom Tools
 
 | Tool | Parameters | Description |

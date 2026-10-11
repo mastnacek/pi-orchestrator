@@ -151,6 +151,26 @@ const en: Strings = {
   • /orch direction right|down — Set pane split direction (side-by-side vs stacked).
   • /orch lang cs|en           — Switch interface language.
 
+7. SOUL-BOUND AGENT ROLES (12 profiles)
+  Each role is bound to a soul file (souls/<role>.md) AND to structural flags —
+  the boundary is enforced by --tools, not merely requested in prose.
+  • scout       read-only reconnaissance on a free 1M-context model
+  • librarian   external docs & web research
+  • implementer approved implementation, full tools, high thinking
+  • fixer       surgical bug fixes from compiler/test failures
+  • frontend    UI/UX, TUI width safety, HTMX/Tailwind
+  • oracle      architectural devil's advocate (read-only)
+  • reviewer    independent code review (read-only)
+  • curator     UMA memory hygiene & staging proposals
+  • lotus       IBM Notes / LotusScript domain expert
+  • pi-uma      UMA memory specialist
+  • mozek_rust  Rust pipeline specialist
+  • fast        cheap general-purpose default
+
+  Inspect a role:  /orch profile list
+  Activate one:    /orch profile select scout --global
+  Open its pane:   /orch split scout
+
 Tip: Add --global to persist settings across all sessions to ~/.pi/agent/orchestrator.json.`,
   paneOpened: (paneId, dir) => `Opened new pane ${paneId} (right split) in ${dir}`,
   paneRenamed: (paneId, label) => `Pane ${paneId} renamed to "${label}"`,
@@ -262,6 +282,26 @@ const cs: Strings = {
   • /orch auto-confirm on|off  — Automatické odeslání klávesou Enter ihned po vložení promptu.
   • /orch direction right|down — Směr rozdělení nového panelu (vedle sebe vs. pod sebe).
   • /orch lang cs|en           — Přepnutí jazyka rozhraní.
+
+7. ROLE AGENTŮ VÁZANÉ NA SOUL (12 profilů)
+  Každá role má vlastní soul soubor (souls/<role>.md) A strukturální vynucení -
+  hranice je vynucena přepínačem --tools, nikoli jen prosebně v textu.
+  • scout       čtecí průzkum kódu na bezplatném modelu s 1M kontextem
+  • librarian   rešerše externí dokumentace a webu
+  • implementer schválená implementace, plné nástroje, vysoké myšlení
+  • fixer       chirurgické opravy z chyb kompilátoru a testů
+  • frontend    UI/UX, šířková bezpečnost TUI, HTMX/Tailwind
+  • oracle      architektonický ďáblův advokát (pouze čtení)
+  • reviewer    nezávislé review kódu (pouze čtení)
+  • curator     hygiena paměti UMA a návrhy do stagingu
+  • lotus       doménový expert na IBM Notes / LotusScript
+  • pi-uma      specialista na paměťový systém UMA
+  • mozek_rust  specialista na Rust pipeline
+  • fast        levný univerzální výchozí profil
+
+  Výpis rolí:      /orch profile list
+  Aktivace role:   /orch profile select scout --global
+  Otevření panelu: /orch split scout
 
 Tip: Přidejte přepínač --global pro trvalé uložení do ~/.pi/agent/orchestrator.json.`,
   paneOpened: (paneId, dir) => `Otevřen nový panel ${paneId} (vedle) v ${dir}`,

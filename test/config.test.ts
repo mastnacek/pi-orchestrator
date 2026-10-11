@@ -4,55 +4,92 @@ import {
   buildPiLaunchCommand,
   getDefaultConfig,
   getProfileFor,
+  getSoulPath,
   type AgentProfile,
 } from "../src/shared/config.ts";
 
-test("buildPiLaunchCommand formats model and thinking levels", () => {
+test("buildPiLaunchCommand uses the dedicated --thinking flag, not a model suffix", () => {
   const profile: AgentProfile = {
     name: "test",
     model: "anthropic/claude-3-7-sonnet",
     thinking: "high",
   };
-  const cmd = buildPiLaunchCommand(profile);
-  assert.equal(cmd, "pi --model anthropic/claude-3-7-sonnet:high");
+  assert.equal(
+    buildPiLaunchCommand(profile),
+    "pi --model anthropic/claude-3-7-sonnet --thinking high"
+  );
 });
 
-test("buildPiLaunchCommand includes explicit provider flag if set", () => {
+test("a variant model id never collides with a thinking suffix", () => {
+  // Regression: the old builder produced `...:free:off`, which pi cannot parse.
   const profile: AgentProfile = {
-    name: "test-prov",
+    name: "variant",
     provider: "openrouter-soukr",
     model: "nvidia/nemotron-3-ultra-550b-a55b:free",
     thinking: "off",
   };
   const cmd = buildPiLaunchCommand(profile);
-  assert.equal(cmd, "pi --provider openrouter-soukr --model nvidia/nemotron-3-ultra-550b-a55b:free:off");
+  assert.ok(cmd.includes("--model nvidia/nemotron-3-ultra-550b-a55b:free"));
+  assert.ok(cmd.includes("--thinking off"));
+  assert.ok(!cmd.includes(":free:off"));
 });
 
-test("buildPiLaunchCommand formats system prompt", () => {
+test("read-only roles are structurally restricted via --tools", () => {
+  const profile: AgentProfile = {
+    name: "scout",
+    tools: ["read", "ls", "find", "grep"],
+    noSkills: true,
+    noExtensions: true,
+  };
+  const cmd = buildPiLaunchCommand(profile);
+  assert.ok(cmd.includes("--tools read,ls,find,grep"));
+  assert.ok(cmd.includes("--no-skills"));
+  assert.ok(cmd.includes("--no-extensions"));
+  // The permissions are enforced by flags, not merely requested in prose.
+  assert.ok(!cmd.includes("--model"));
+});
+
+test("buildPiLaunchCommand formats a plain system prompt append", () => {
   const profile: AgentProfile = {
     name: "test",
     appendSystemPrompt: "Specialist instructions",
   };
-  const cmd = buildPiLaunchCommand(profile);
-  assert.equal(cmd, 'pi --append-system-prompt "Specialist instructions"');
+  assert.equal(buildPiLaunchCommand(profile), 'pi --append-system-prompt "Specialist instructions"');
 });
 
-test("buildPiLaunchCommand returns bare pi for empty profile", () => {
+test("buildPiLaunchCommand returns bare pi for an empty profile", () => {
   assert.equal(buildPiLaunchCommand(undefined), "pi");
 });
 
-test("getProfileFor resolves specialist profile or falls back to default", () => {
+test("every default read-only role carries the read-only tool allowlist", () => {
   const cfg = getDefaultConfig();
-  const uma = getProfileFor("pi-uma", cfg);
-  assert.ok(uma);
-  assert.equal(uma.name, "pi-uma");
-  assert.equal(uma.model, "nvidia/nemotron-3-ultra-550b-a55b:free");
+  for (const role of ["scout", "reviewer", "oracle"]) {
+    const p = cfg.profiles[role];
+    assert.ok(p, `${role} must be defined`);
+    assert.deepEqual(p.tools, ["read", "ls", "find", "grep"], `${role} must be read-only`);
+  }
+});
 
+test("every default role resolves to an installed soul file", () => {
+  const cfg = getDefaultConfig();
+  for (const name of Object.keys(cfg.profiles)) {
+    const soul = getSoulPath(name);
+    // pi-uma / mozek_rust / fast / frontier are project/model profiles with no
+    // dedicated soul; the role profiles below are the ones that must have one.
+    const needsSoul = ["scout", "implementer", "reviewer", "oracle", "fixer", "frontend", "curator", "lotus"];
+    if (needsSoul.includes(name)) {
+      assert.ok(soul, `${name} must have a soul file`);
+    }
+  }
+});
+
+test("getProfileFor resolves a role profile or falls back to the default", () => {
+  const cfg = getDefaultConfig();
   const scout = getProfileFor("scout", cfg);
   assert.ok(scout);
   assert.equal(scout.name, "scout");
+  assert.equal(scout.model, "nvidia/nemotron-3-ultra-550b-a55b:free");
 
-  // Unknown specialist falls back to default profile (fast)
   const unknown = getProfileFor("completely_new_project", cfg);
   assert.ok(unknown);
   assert.equal(unknown.name, "fast");

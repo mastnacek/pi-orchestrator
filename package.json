@@ -1,7 +1,16 @@
 {
   "name": "@mastnacek/pi-orchestrator",
-  "version": "0.3.0",
-  "description": "Memory-native orchestrator for Pi coding agent and Herdr multiplexer",
+  "version": "0.3.1",
+  "description": "Memory-native orchestrator for Pi coding agent and Herdr multiplexer, with soul-bound agent roles",
+  "files": [
+    "README.md",
+    "package.json",
+    "./index.ts",
+    "dist",
+    "src",
+    "skills",
+    "souls"
+  ],
   "type": "module",
   "main": "./index.ts",
   "keywords": [
@@ -11,14 +20,6 @@
   ],
   "author": "mastnacek",
   "license": "MIT",
-  "files": [
-    "README.md",
-    "package.json",
-    "./index.ts",
-    "dist",
-    "src",
-    "skills"
-  ],
   "pi": {
     "extensions": [
       "./index.ts"

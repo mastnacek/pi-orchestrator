@@ -55,10 +55,11 @@ export function getProfileCompletions(
       .map((name) => {
         const p = state.config.profiles[name];
         const isActive = name === state.config.defaultProfile;
+        const tools = p.tools ? ` · nástroje: ${p.tools.join(",")}` : " · plné nástroje";
         return {
           label: isActive ? `${name} ✓` : name,
           value: `profile select ${name}`,
-          description: `Model: ${p.model || "default"}${p.thinking ? ` (thinking: ${p.thinking})` : ""}${isActive ? " · ● AKTIVNÍ" : ""}`,
+          description: `Model: ${p.model || "default"}${p.thinking ? ` (thinking: ${p.thinking})` : ""}${tools}${isActive ? " · ● AKTIVNÍ" : ""}`,
         };
       });
   }
