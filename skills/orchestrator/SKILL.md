@@ -213,5 +213,6 @@ Valid `provider` values are only those present in the catalog at argument-parse 
 2. **Subagent Recursion Guard:** suppresses extension execution when `PI_SUBAGENT` or `PI_CHILD_SESSION` is set.
 3. **Read-only roles are enforced by flags**, not by prose — a scout cannot write.
 4. **Automated Enter Dispatch:** prompts pasted into a target pane are followed by an `Enter` keypress after a 150 ms buffer flush.
-5. **Human-in-the-Loop Confirmation:** `/orch auto` always shows an interactive modal before delegating.
-6. **UMA write discipline:** memory mutations go exclusively through `uma_write` / `uma_supersede` so the operator can approve them in the modal. Direct file writes to `.uma/` and `bash` invocations of `uma write` are blocked at runtime.
+5. **Pane placement:** a role pane is created by splitting **the orchestrator's own pane** (`HERDR_PANE_ID`), so it always appears as a pane in the orchestrator's current tab — never in whatever tab happened to be focused, and never as a tab of its own. `--current` is used only as a fallback when the caller is not inside a Herdr pane.
+6. **Human-in-the-Loop Confirmation:** `/orch auto` always shows an interactive modal before delegating.
+7. **UMA write discipline:** memory mutations go exclusively through `uma_write` / `uma_supersede` so the operator can approve them in the modal. Direct file writes to `.uma/` and `bash` invocations of `uma write` are blocked at runtime.

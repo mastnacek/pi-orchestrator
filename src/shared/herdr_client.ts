@@ -75,16 +75,29 @@ export async function listTabs(cwd?: string): Promise<HerdrTab[]> {
   }
 }
 
-export async function splitPane(options?: {
+/**
+ * Builds the argument vector for `herdr pane split`.
+ *
+ * The anchor is deliberately the caller's OWN pane, never `--current`.
+ * `--current` resolves to whatever pane the server considers focused, so a
+ * split issued while the operator had another tab focused created the new pane
+ * in that unrelated tab. Splitting an explicit pane id keeps every role pane in
+ * the tab the split is issued from.
+ *
+ * `--current` remains only as a fallback for the case where the caller is not
+ * running inside a Herdr pane at all.
+ */
+export function buildSplitArgs(options?: {
   paneId?: string;
   cwd?: string;
   direction?: "right" | "down";
   ratio?: number;
   focus?: boolean;
-}): Promise<string> {
+}, ownPaneId?: string): string[] {
   const args = ["pane", "split"];
-  if (options?.paneId) {
-    args.push(options.paneId);
+  const anchor = options?.paneId ?? ownPaneId;
+  if (anchor) {
+    args.push(anchor);
   } else {
     args.push("--current");
   }
@@ -98,6 +111,17 @@ export async function splitPane(options?: {
   if (options?.focus === false) {
     args.push("--no-focus");
   }
+  return args;
+}
+
+export async function splitPane(options?: {
+  paneId?: string;
+  cwd?: string;
+  direction?: "right" | "down";
+  ratio?: number;
+  focus?: boolean;
+}): Promise<string> {
+  const args = buildSplitArgs(options, currentPaneId());
 
   const res = await runHerdr(args);
   if (res.code !== 0) {
