@@ -43,7 +43,9 @@ Prose deklaruje záměr; flagy ho činí nevynutitelným k obejití. Scout s `--
 
 | Role | Model | Thinking | Nástroje | Soul |
 |---|---|---|---|---|
-| `orchestrator` | `google/gemini-2.5-flash` | medium | plné **mínus** `edit,write` | `souls/orchestrator.md` |
+| `orchestrator` | `nvidia/nemotron-3-ultra-550b-a55b:free` (přes `openrouter-soukr`) | medium | plné **mínus** `edit,write` | `souls/orchestrator.md` |
+
+Dispečer běží na **bezplatném** frontier orchestration modelu s 1M kontextem za $0/M, a to na **vlastním účtu** operátora. Alias účtu smí být na **profilu**, ale nikdy na **příkazové řádce**: CLI zahazuje providery mimo vestavěný katalog a alias kvalifikuje pouze běhový příkaz `/model`. To je podstatné — vestavěný účet `openrouter` bezplatné modely odmítá (404), zatímco alias je povoluje.
 
 Orchestrátor **nikdy sám neimplementuje**. Vyhodnotí úkol přes System-1, otevře panel v Herdr a předá balíček paměti. Odebrání nástrojů `edit` a `write` je strukturálním vyjádřením tohoto pravidla: když dostane chuť upravit soubor, znamená to, že má delegovat.
 

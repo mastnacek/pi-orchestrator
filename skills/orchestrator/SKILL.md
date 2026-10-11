@@ -54,7 +54,7 @@ A `scout` launched with `--tools read,ls,find,grep` **physically cannot** call `
 
 | Layer | Role | Model (applied at runtime) | Thinking | Tools |
 |---|---|---|---|---|
-| Control | `orchestrator` | `google/gemini-2.5-flash` | medium | full **minus** `edit,write` |
+| Control | `orchestrator` | `nvidia/nemotron-3-ultra-550b-a55b:free` (via `openrouter-soukr`) | medium | full **minus** `edit,write` |
 | Recon | `scout` | `google/gemini-2.5-flash-lite` | off | `read,ls,find,grep` |
 | Recon | `librarian` | `google/gemini-2.5-flash` | low | `read,ls,find,grep,bash` |
 | Execution | `implementer` | `anthropic/claude-sonnet-4.6` | high | full |
@@ -80,6 +80,13 @@ The orchestrator is the only role that holds the delegation tools *and* is
 denied the coding tools (`--exclude-tools edit,write`). That denial is the
 structural statement of "coordinate, never implement": when it feels the urge
 to edit a file, the correct move is to delegate.
+
+It runs the free `nvidia/nemotron-3-ultra-550b-a55b:free` (1M context, $0/M)
+through the operator's own account alias. The alias may appear on a **profile**
+but never on the **command line**: the CLI drops non-catalog providers, and the
+alias qualifies only the runtime `/model` command. That routing matters — the
+built-in `openrouter` credential rejects free models with a 404, while the
+alias permits them.
 
 Read-only roles (`scout`, `oracle`, `reviewer`) run with `--no-extensions`, so
 they **cannot** delegate at all — a recon agent that could spawn more agents

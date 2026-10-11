@@ -9,6 +9,7 @@ import {
   resolvePipeline,
   type AgentProfile,
 } from "../src/shared/config.ts";
+import { buildRuntimeSetupCommands } from "../src/shared/role_setup.ts";
 
 test("buildPiLaunchCommand carries no model and no thinking level", () => {
   // Both are applied at runtime via /model and /thinking. A CLI --model is
@@ -101,13 +102,33 @@ test("a catalog provider is passed through as --provider", () => {
   assert.ok(buildPiLaunchCommand(profile).includes("--provider openrouter"));
 });
 
-test("no shipped profile uses an extension-registered provider", () => {
+test("an extension-registered account alias never reaches the command line", () => {
+  // The invariant flipped in v0.5.0: a profile MAY declare an alias provider,
+  // because it is used only to qualify the runtime `/model` command. What must
+  // never happen is the alias being handed to `pi` as a flag, which aborts
+  // startup with "Unknown provider".
   const cfg = getDefaultConfig();
-  const safe = ["antigravity", "kimi-coding", "ollama", "opencode", "openrouter", "zenfree"];
   for (const [name, p] of Object.entries(cfg.profiles)) {
-    if (!p.provider) continue;
-    assert.ok(safe.includes(p.provider), `${name} uses non-CLI-safe provider ${p.provider}`);
+    assert.ok(
+      !buildPiLaunchCommand(p).includes(p.provider ?? "\u0000"),
+      `${name} leaked provider ${p.provider} onto the command line`
+    );
   }
+
+  // The orchestrator is the case that matters: an alias it is allowed to keep.
+  const orchestrator = cfg.profiles.orchestrator;
+  assert.equal(orchestrator.provider, "openrouter-soukr");
+  assert.ok(!buildPiLaunchCommand(orchestrator).includes("openrouter-soukr"));
+});
+
+test("the orchestrator runs the free nemotron through its own account", () => {
+  const cfg = getDefaultConfig();
+  const o = cfg.profiles.orchestrator;
+  assert.equal(o.model, "nvidia/nemotron-3-ultra-550b-a55b:free");
+  // The account qualifier is what routes the request away from the built-in
+  // credential, which rejects free models with a 404.
+  assert.deepEqual(buildRuntimeSetupCommands(o)[0],
+    "/model openrouter-soukr/nvidia/nemotron-3-ultra-550b-a55b:free");
 });
 
 test("resolvePipeline resolves named chains and inline role lists", () => {

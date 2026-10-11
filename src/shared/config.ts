@@ -85,6 +85,16 @@ const STRONG_MODEL = "anthropic/claude-sonnet-4.6";
 const CHEAP_MODEL = "google/gemini-2.5-flash-lite";
 const MID_MODEL = "google/gemini-2.5-flash";
 
+/**
+ * Free-tier OpenRouter account alias used for the dispatcher role.
+ *
+ * `pi-openrouter-accounts` registers this as a provider at session start. It
+ * permits free models; the built-in `openrouter` credential does not.
+ */
+const FREE_ACCOUNT_ALIAS = "openrouter-soukr";
+/** The free frontier orchestration model, 1M context, $0/M tokens. */
+const FREE_ORCHESTRATOR_MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free";
+
 export const DEFAULT_PROFILES: Record<string, AgentProfile> = {
   /**
    * The dispatcher itself.
@@ -92,10 +102,18 @@ export const DEFAULT_PROFILES: Record<string, AgentProfile> = {
    * This is the role of the main Pi instance the operator talks to. It is the
    * only role granted the orchestrator tools AND denied the coding tools — the
    * structural expression of "coordinate, never implement".
+   *
+   * The provider is an extension-registered OpenRouter account alias, which is
+   * legitimate here precisely because it is NOT passed on the command line:
+   * `buildPiLaunchCommand` drops non-catalog providers, and the alias is used
+   * only to qualify the runtime `/model` command, where the account provider is
+   * registered. That is what lets the free nemotron run on the operator's own
+   * account instead of the built-in one, which rejects free models outright.
    */
   orchestrator: {
     name: "orchestrator",
-    model: MID_MODEL,
+    provider: FREE_ACCOUNT_ALIAS,
+    model: FREE_ORCHESTRATOR_MODEL,
     thinking: "medium",
     excludeTools: ["edit", "write"],
   },
