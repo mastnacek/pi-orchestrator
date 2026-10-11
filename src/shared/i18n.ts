@@ -36,6 +36,8 @@ export interface Strings {
   compProfileSet: string;
   compProfileRemove: string;
   compProfileMenu: string;
+  compHelp: string;
+  detailedHelp: string;
   paneOpened: (paneId: string, dir: string) => string;
   paneRenamed: (paneId: string, label: string) => string;
   profileSet: (name: string, model: string) => string;
@@ -83,6 +85,44 @@ const en: Strings = {
   compProfileSet: "Create or update a profile: /orch profile set <name> <model>",
   compProfileRemove: "Remove an agent profile",
   compProfileMenu: "Open interactive profile selector menu",
+  compHelp: "Detailed orchestrator and Herdr guide",
+  detailedHelp: `── Herdr Multiplexer Orchestrator — Guide & Setup ──
+
+1. PRINCIPLES & ARCHITECTURE
+  • The orchestrator acts as a task dispatcher and memory coordinator.
+  • Instead of opaque subagents, it opens visible side-by-side terminal panes in the Herdr multiplexer.
+  • You can watch each delegate work in real time and switch into their pane at any moment.
+
+2. SYSTEM-1 TASK ROUTING (FASTBRAIN ROUTE)
+  • /orch route <prompt>
+    - Previews task routing: shows winner specialist, confidence score, and pre-warmed context slice facts.
+    - Runs locally (0 ms, 0 cost) matching known project domains.
+  • /orch auto <prompt>
+    - Full tiered routing with confirmation.
+    - Displays an interactive modal dialog showing target pane, name, and live lifecycle status (idle, working).
+    - Upon confirmation, auto-submits the prompt with Enter keypress.
+
+3. AGENT PROFILES (MODELS & THINKING)
+  • /orch profile (or /orch profile menu)
+    - Interactive selector to browse and activate specialist profiles.
+  • /orch profile list
+    - Lists all configured profiles with models, thinking levels, and system prompt additions.
+  • /orch profile select <name> [--global]
+    - Sets the default agent profile (fast, frontier, pi-uma, mozek_rust).
+  • /orch profile set <name> <model> [--global]
+    - Creates or updates an agent profile.
+
+4. PANE MANAGEMENT & LABELS
+  • /orch split [specialist]
+    - Splits the workspace side-by-side and launches Pi in the specialist's directory.
+  • /orch rename <label>
+    - Renames the current pane in Herdr for easier orientation.
+  • /orch status
+    - Shows live overview of Herdr workspaces, tabs, panes, and agent lifecycle states.
+  • /orch delegate <target> <prompt>
+    - Manually delegates a prompt to a named agent or pane ID.
+
+Tip: Add --global to persist settings to ~/.pi/agent/orchestrator.json across all sessions.`,
   paneOpened: (paneId, dir) => `Opened new pane ${paneId} (right split) in ${dir}`,
   paneRenamed: (paneId, label) => `Pane ${paneId} renamed to "${label}"`,
   profileSet: (name, model) => `Profile "${name}" set with model ${model}`,
@@ -136,6 +176,44 @@ const cs: Strings = {
   compProfileSet: "Vytvořit nebo upravit profil: /orch profile set <název> <model>",
   compProfileRemove: "Odebrat profil agenta",
   compProfileMenu: "Otevřít interaktivní menu profilů",
+  compHelp: "Podrobná nápověda pro orchestrátor a Herdr multiplexer",
+  detailedHelp: `── Orchestrátor v Herdr multiplexeru — Nápověda a konfigurace ──
+
+1. PRINCIP A ARCHITEKTURA
+  • Orchestrátor funguje jako dispečer úkolů a správce paměti.
+  • Místo slepých jednorázových subagentů otevírá vedlejší panely (panes) v Herdr multiplexeru přímo vedle vás.
+  • Každého delegáta můžete sledovat v reálném čase a kdykoliv mu vstoupit do okna.
+
+2. SYSTEM-1 SMĚROVÁNÍ ÚKOLŮ (FASTBRAIN ROUTE)
+  • /orch route <prompt>
+    - Pouze otestuje směrování: ukáže vítězného specialistu, skóre jistoty a fakta z paměti (context slice).
+    - Běží lokálně (0 ms, 0 Kč) podle známých domén.
+  • /orch auto <prompt>
+    - Plné automatické směrování.
+    - Zobrazí interaktivní potvrzovací okno s názvem cílového panelu a jeho stavem (idle, working).
+    - Po schválení odešle úkol delegátovi a automaticky stiskne Enter.
+
+3. PROFILY AGENTŮ (MODELY A THINKING)
+  • /orch profile (nebo /orch profile menu)
+    - Otevře interaktivní menu pro výběr a správu profilů.
+  • /orch profile list
+    - Vypíše všechny definované profily (model, thinking, system prompt).
+  • /orch profile select <profil> [--global]
+    - Nastaví výchozí profil agenta (např. fast, frontier, pi-uma, mozek_rust).
+  • /orch profile set <název> <model> [--global]
+    - Vytvoří nebo upraví profil pro konkrétního specialistu.
+
+4. SPRÁVA A POJMENOVÁNÍ PANELŮ
+  • /orch split [specialista]
+    - Ručně rozdělí okno na nový vedlejší panel (side-by-side) a spustí Pi v daném projektu.
+  • /orch rename <název>
+    - Přejmenuje aktuální panel v Herdr pro snazší orientaci.
+  • /orch status
+    - Zobrazí přehled všech aktivních agentů, panelů a jejich životních cyklů.
+  • /orch delegate <cíl> <úkol>
+    - Ručně deleguje úkol na konkrétního agenta nebo panel.
+
+Tip: Přidejte přepínač --global pro trvalé uložení do ~/.pi/agent/orchestrator.json.`,
   paneOpened: (paneId, dir) => `Otevřen nový panel ${paneId} (vedle) v ${dir}`,
   paneRenamed: (paneId, label) => `Panel ${paneId} přejmenován na "${label}"`,
   profileSet: (name, model) => `Profil "${name}" nastaven s modelem ${model}`,

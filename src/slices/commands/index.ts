@@ -60,6 +60,11 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
             description: cs.compProfile,
           },
           {
+            label: "help",
+            value: "help",
+            description: cs.compHelp,
+          },
+          {
             label: "status",
             value: "status",
             description: cs.compStatus,
@@ -115,6 +120,13 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
 
       if (subcmd === "profile") {
         await handleProfileCommand(restText, ctx, state);
+        return;
+      }
+
+      if (subcmd === "help" || subcmd === "setup") {
+        if (ctx.hasUI) {
+          ctx.ui.notify(currentStrings.detailedHelp, "info");
+        }
         return;
       }
 

@@ -30,6 +30,8 @@ test("every locale has a complete string table", () => {
 			"compProfileSet",
 			"compProfileRemove",
 			"compProfileMenu",
+			"compHelp",
+			"detailedHelp",
 			"compStatus",
 			"compLang",
 			"compLangEn",
