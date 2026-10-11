@@ -53,7 +53,7 @@ Orchestrátor **nikdy sám neimplementuje**. Vyhodnotí úkol přes System-1, ot
 
 | Role | Model | Thinking | Nástroje | Soul |
 |---|---|---|---|---|
-| `scout` | `nvidia/nemotron-3-ultra-550b-a55b:free` | off | `read,ls,find,grep` + `--no-skills --no-extensions` | `souls/scout.md` |
+| `scout` | `google/gemini-2.5-flash-lite` | off | `read,ls,find,grep` + `--no-skills --no-extensions` | `souls/scout.md` |
 | `librarian` | `google/gemini-2.5-flash` | low | `read,ls,find,grep,bash` | `souls/librarian.md` |
 
 Běží na **levných modelech za 0 Kč**, aby drahý model nemusel tápat a pálit kontext. Dodávají přesné cesty a čísla řádků.
@@ -64,10 +64,10 @@ Běží na **levných modelech za 0 Kč**, aby drahý model nemusel tápat a pá
 
 | Role | Model | Thinking | Nástroje | Soul |
 |---|---|---|---|---|
-| `implementer` | `anthropic/claude-3-7-sonnet` | high | plné | `souls/implementer.md` |
+| `implementer` | `anthropic/claude-sonnet-4.6` | high | plné | `souls/implementer.md` |
 | `fixer` | `google/gemini-2.5-flash` | low | plné | `souls/fixer.md` |
-| `frontend` | `anthropic/claude-3-7-sonnet` | high | plné | `souls/frontend.md` |
-| `lotus` | `anthropic/claude-3-7-sonnet` | high | plné + MCP | `souls/lotus.md` |
+| `frontend` | `anthropic/claude-sonnet-4.6` | high | plné | `souls/frontend.md` |
+| `lotus` | `anthropic/claude-sonnet-4.6` | high | plné + MCP | `souls/lotus.md` |
 
 Dostávají předem zúžený rozsah práce a pre-warmed kontext z UMA.
 
@@ -77,8 +77,8 @@ Dostávají předem zúžený rozsah práce a pre-warmed kontext z UMA.
 
 | Role | Model | Thinking | Nástroje | Soul |
 |---|---|---|---|---|
-| `reviewer` | `anthropic/claude-3-7-sonnet` | high | `read,ls,find,grep` + `--no-extensions` | `souls/reviewer.md` |
-| `oracle` | `anthropic/claude-3-7-sonnet` | high | `read,ls,find,grep` + `--no-extensions` | `souls/oracle.md` |
+| `reviewer` | `anthropic/claude-sonnet-4.6` | high | `read,ls,find,grep` + `--no-extensions` | `souls/reviewer.md` |
+| `oracle` | `anthropic/claude-sonnet-4.6` | high | `read,ls,find,grep` + `--no-extensions` | `souls/oracle.md` |
 
 Nezávislí auditoři bez práva zápisu. Reviewer hledá regrese a chybějící okrajové případy; Oracle je architektonický ďáblův advokát (využívá `uma_skeptic`).
 
@@ -88,9 +88,68 @@ Nezávislí auditoři bez práva zápisu. Reviewer hledá regrese a chybějící
 
 | Role | Model | Thinking | Nástroje | Soul |
 |---|---|---|---|---|
-| `curator` | `nvidia/nemotron-3-ultra-550b-a55b:free` | off | `uma_*`, staging | `souls/curator.md` |
+| `curator` | `google/gemini-2.5-flash-lite` | off | `uma_*`, staging | `souls/curator.md` |
 
 Dohlíží na hygienu paměti. **Nikdy nezapisuje bez schválení** — vše jde přes modální okno `uma_write` / `uma_supersede`.
+
+---
+
+## Řetězení rolí (pipeline)
+
+Role lze spojovat do sekvenčních řetězů. Každá etapa běží ve svém panelu se svým soulem a svou hranicí nástrojů a **dostává report předchozí etapy jako explicitní handoff**.
+
+Řetězení je sekvenční už z principu: reviewer nemůže auditovat práci, která ještě neexistuje, a implementátor nesmí začít dřív, než mu průzkum dodá fakta.
+
+### Vestavěné řetězy
+
+| Název | Složení | K čemu |
+|---|---|---|
+| `build` | `scout → implementer → reviewer` | Plný cyklus: zmapuj → implementuj → zkontroluj |
+| `design` | `scout → oracle` | Průzkum + architektonická oponentura **před** psaním kódu |
+| `research` | `librarian → implementer` | Nejdřív dokumentace, pak kód |
+| `repair` | `fixer → reviewer` | Oprava + nezávislá kontrola |
+
+### Použití
+
+```bash
+/orch pipeline build "oprav WAL locking v pi-uma"
+/orch pipeline design "přepiš store na async SQLite"
+/orch pipeline scout,oracle,implementer "vlastní řetěz"
+```
+
+Ekvivivalentně jako nástroj pro model: `orch_pipeline`.
+
+### Zastavení řetězu
+
+Řetěz se **zastaví hlasitě**, pokud etapa:
+- vyprší časový limit (10 minut na etapu), nebo
+- skončí ve stavu `blocked` (agent čeká na operátora).
+
+Pokračovat s neúplným reportem by znamenalo briefovat další roli na základě neúplných dat — to je horší než zastavit.
+
+---
+
+## Volba modelů z katalogu Pi
+
+Modely se neopisují ručně. Při psaní příkazu `/orch profile set <role> ` našeptávač nabídne **živý katalog modelů Pi** — přesně ty, které vidíte v pickeru `/model`:
+
+```bash
+/orch profile set scout            # → našeptávač vypíše dostupné modely
+/orch profile set reviewer anthropic/claude-sonnet-4.6
+```
+
+---
+
+## Omezení: účty OpenRouteru (`openrouter-soukr`)
+
+Víceúčtové aliasy (např. `openrouter-soukr`) registruje plugin `pi-openrouter-accounts` **až při `session_start`** — tedy dlouho poté, co Pi ověřil příkazové přepínače. Z tohoto důvodu:
+
+- `--provider openrouter-soukr` **selže** s `Unknown provider`,
+- profil proto účet nezapisuje a nechává potomka vyřešit vlastní nakonfigurovaný účet.
+
+Platné hodnoty `provider` jsou pouze ty, které jsou v katalogu už při parsování argumentů: `antigravity`, `kimi-coding`, `ollama`, `opencode`, `openrouter`, `zenfree`.
+
+> Pozn.: bezplatný `nvidia/nemotron-3-ultra-550b-a55b:free` vrací na účtu `soukr` chybu 404 (`free-model-training-violation`) podle nastavení soukromí toho účtu — proto role používají `gemini-2.5-flash-lite` (1M kontext, ~$0.10/M vstupu).
 
 ---
 
@@ -108,8 +167,7 @@ Dohlíží na hygienu paměti. **Nikdy nezapisuje bez schválení** — vše jde
 
 ```bash
 # scout — strukturálně čtecí, zakázané skills i extensions
-pi --provider openrouter-soukr \
-   --model nvidia/nemotron-3-ultra-550b-a55b:free \
+pi --model google/gemini-2.5-flash-lite \
    --thinking off \
    --tools read,ls,find,grep \
    --no-skills --no-extensions \

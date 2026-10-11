@@ -45,6 +45,11 @@ export interface Strings {
   autoConfirmSet: (val: boolean) => string;
   directionSet: (dir: string) => string;
   compHelp: string;
+  compPipeline: string;
+  pipelineTitle: string;
+  pipelineUsage: string;
+  pipelineRunning: (index: number, total: number, role: string) => string;
+  pipelineUnknown: (name: string, available: string) => string;
   detailedHelp: string;
   paneOpened: (paneId: string, dir: string) => string;
   paneRenamed: (paneId: string, label: string) => string;
@@ -105,6 +110,12 @@ const en: Strings = {
   autoConfirmSet: (val) => `Auto-confirm set to ${val ? "ON" : "OFF"}`,
   directionSet: (dir) => `Split direction set to ${dir}`,
   compHelp: "Detailed orchestrator and Herdr guide",
+  compPipeline:
+    "Run a role chain in Herdr panes, e.g. scout → implementer → reviewer (build | design | research | repair)",
+  pipelineTitle: "Pipeline",
+  pipelineUsage: "Usage: /orch pipeline <build|design|research|repair|role1,role2,...> <task>",
+  pipelineRunning: (index, total, role) => `Pipeline stage ${index + 1}/${total}: ${role}...`,
+  pipelineUnknown: (name, available) => `Unknown pipeline "${name}". Available: ${available}`,
   detailedHelp: `── Herdr Multiplexer Orchestrator — Guide & Setup ──
 
 1. PRINCIPLES & ARCHITECTURE
@@ -237,6 +248,12 @@ const cs: Strings = {
   autoConfirmSet: (val) => `Automatický Enter nastaven na ${val ? "ZAPNUTO" : "VYPNUTO"}`,
   directionSet: (dir) => `Směr rozdělení nastaven na ${dir}`,
   compHelp: "Podrobná nápověda pro orchestrátor a Herdr multiplexer",
+  compPipeline:
+    "Spustit řetěz rolí v Herdr panelech, např. scout → implementer → reviewer (build | design | research | repair)",
+  pipelineTitle: "Řetěz rolí",
+  pipelineUsage: "Použití: /orch pipeline <build|design|research|repair|role1,role2,...> <úkol>",
+  pipelineRunning: (index, total, role) => `Etapa ${index + 1}/${total}: ${role}...`,
+  pipelineUnknown: (name, available) => `Neznámý řetěz "${name}". Dostupné: ${available}`,
   detailedHelp: `── Orchestrátor v Herdr multiplexeru — Nápověda a konfigurace ──
 
 1. PRINCIP A ARCHITEKTURA

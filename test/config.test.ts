@@ -5,6 +5,8 @@ import {
   getDefaultConfig,
   getProfileFor,
   getSoulPath,
+  isCliSafeProvider,
+  resolvePipeline,
   type AgentProfile,
 } from "../src/shared/config.ts";
 
@@ -24,7 +26,7 @@ test("a variant model id never collides with a thinking suffix", () => {
   // Regression: the old builder produced `...:free:off`, which pi cannot parse.
   const profile: AgentProfile = {
     name: "variant",
-    provider: "openrouter-soukr",
+    provider: "openrouter",
     model: "nvidia/nemotron-3-ultra-550b-a55b:free",
     thinking: "off",
   };
@@ -88,9 +90,48 @@ test("getProfileFor resolves a role profile or falls back to the default", () =>
   const scout = getProfileFor("scout", cfg);
   assert.ok(scout);
   assert.equal(scout.name, "scout");
-  assert.equal(scout.model, "nvidia/nemotron-3-ultra-550b-a55b:free");
+  assert.equal(scout.model, "google/gemini-2.5-flash-lite");
 
   const unknown = getProfileFor("completely_new_project", cfg);
   assert.ok(unknown);
   assert.equal(unknown.name, "fast");
+});
+
+test("an extension-registered account alias is never passed as --provider", () => {
+  // Regression: `--provider openrouter-soukr` aborts pi with "Unknown provider"
+  // because pi-openrouter-accounts registers the id at session_start, after the
+  // CLI has already validated the flag. Omitting it lets the child resolve its
+  // own configured account instead of failing to launch.
+  const profile: AgentProfile = {
+    name: "scout",
+    provider: "openrouter-soukr",
+    model: "google/gemini-2.5-flash-lite",
+  };
+  const cmd = buildPiLaunchCommand(profile);
+  assert.ok(!cmd.includes("openrouter-soukr"), cmd);
+  assert.ok(!cmd.includes("--provider"), cmd);
+  assert.ok(cmd.includes("--model google/gemini-2.5-flash-lite"));
+});
+
+test("a catalog provider is passed through as --provider", () => {
+  const profile: AgentProfile = { name: "x", provider: "openrouter", model: "foo/bar" };
+  assert.ok(buildPiLaunchCommand(profile).includes("--provider openrouter"));
+});
+
+test("no shipped profile uses an extension-registered provider", () => {
+  const cfg = getDefaultConfig();
+  const safe = ["antigravity", "kimi-coding", "ollama", "opencode", "openrouter", "zenfree"];
+  for (const [name, p] of Object.entries(cfg.profiles)) {
+    if (!p.provider) continue;
+    assert.ok(safe.includes(p.provider), `${name} uses non-CLI-safe provider ${p.provider}`);
+  }
+});
+
+test("resolvePipeline resolves named chains and inline role lists", () => {
+  const cfg = getDefaultConfig();
+  assert.deepEqual(resolvePipeline("build", cfg), ["scout", "implementer", "reviewer"]);
+  assert.deepEqual(resolvePipeline("BUILD", cfg), ["scout", "implementer", "reviewer"]);
+  assert.deepEqual(resolvePipeline("scout,oracle", cfg), ["scout", "oracle"]);
+  assert.equal(resolvePipeline("scout", cfg), undefined);
+  assert.equal(resolvePipeline("nope", cfg), undefined);
 });

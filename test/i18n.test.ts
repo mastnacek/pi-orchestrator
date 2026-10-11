@@ -31,6 +31,9 @@ test("every locale has a complete string table", () => {
 			"compProfileRemove",
 			"compProfileMenu",
 			"compHelp",
+			"compPipeline",
+			"pipelineTitle",
+			"pipelineUsage",
 			"detailedHelp",
 			"compStatus",
 			"compLang",
@@ -56,6 +59,8 @@ test("every locale has a complete string table", () => {
 		assert.equal(typeof s.profileSelected("p1"), "string");
 		assert.equal(typeof s.profileRemoved("p1"), "string");
 		assert.equal(typeof s.profileNotFound("p1"), "string");
+		assert.equal(typeof s.pipelineRunning(0, 3, "scout"), "string");
+		assert.equal(typeof s.pipelineUnknown("nope", "build"), "string");
 	}
 });
 

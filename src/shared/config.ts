@@ -36,12 +36,42 @@ export interface AgentProfile {
 export interface OrchestratorConfig {
   defaultProfile?: string;
   profiles: Record<string, AgentProfile>;
+  /** Named role chains used by `/orch pipeline`. */
+  pipelines?: Record<string, string[]>;
   splitDirection: "right" | "down";
   autoConfirm: boolean;
 }
 
 /** Read-only tool allowlist shared by every reconnaissance role. */
 const READ_ONLY_TOOLS = ["read", "ls", "find", "grep"];
+
+/**
+ * Provider ids that Pi accepts on the command line.
+ *
+ * Only providers present in the model catalog at ARGUMENT-PARSE time are
+ * valid here. Accounts created by extensions (pi-openrouter-accounts registers
+ * `openrouter-<id>`) are injected at `session_start`, long after the CLI has
+ * already validated `--provider` — passing one aborts startup with
+ * `Unknown provider`. Such an account is reached instead by omitting
+ * `--provider` and letting the child session resolve its own configured
+ * account, which is the default behaviour below.
+ *
+ * Verified against `pi --list-models`: antigravity, kimi-coding, ollama,
+ * opencode, openrouter, zenfree.
+ */
+export const CLI_SAFE_PROVIDERS = new Set([
+  "antigravity",
+  "kimi-coding",
+  "ollama",
+  "opencode",
+  "openrouter",
+  "zenfree",
+]);
+
+/** True when `--provider <id>` will survive Pi's startup validation. */
+export function isCliSafeProvider(provider: string | undefined): boolean {
+  return provider !== undefined && CLI_SAFE_PROVIDERS.has(provider.trim().toLowerCase());
+}
 
 /**
  * The default role roster.
@@ -51,11 +81,14 @@ const READ_ONLY_TOOLS = ["read", "ls", "find", "grep"];
  * precise facts to expensive writers, and independent read-only reviewers
  * guard the result.
  */
+const STRONG_MODEL = "anthropic/claude-sonnet-4.6";
+const CHEAP_MODEL = "google/gemini-2.5-flash-lite";
+const MID_MODEL = "google/gemini-2.5-flash";
+
 export const DEFAULT_PROFILES: Record<string, AgentProfile> = {
   scout: {
     name: "scout",
-    provider: "openrouter-soukr",
-    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    model: CHEAP_MODEL,
     thinking: "off",
     tools: READ_ONLY_TOOLS,
     noSkills: true,
@@ -63,78 +96,94 @@ export const DEFAULT_PROFILES: Record<string, AgentProfile> = {
   },
   librarian: {
     name: "librarian",
-    provider: "openrouter-soukr",
-    model: "google/gemini-2.5-flash",
+    model: MID_MODEL,
     thinking: "low",
     tools: ["read", "ls", "find", "grep", "bash"],
   },
   implementer: {
     name: "implementer",
-    model: "anthropic/claude-3-7-sonnet",
+    model: STRONG_MODEL,
     thinking: "high",
   },
   fixer: {
     name: "fixer",
-    model: "google/gemini-2.5-flash",
+    model: MID_MODEL,
     thinking: "low",
   },
   frontend: {
     name: "frontend",
-    model: "anthropic/claude-3-7-sonnet",
+    model: STRONG_MODEL,
     thinking: "high",
   },
   oracle: {
     name: "oracle",
-    model: "anthropic/claude-3-7-sonnet",
+    model: STRONG_MODEL,
     thinking: "high",
     tools: READ_ONLY_TOOLS,
     noExtensions: true,
   },
   reviewer: {
     name: "reviewer",
-    model: "anthropic/claude-3-7-sonnet",
+    model: STRONG_MODEL,
     thinking: "high",
     tools: READ_ONLY_TOOLS,
     noExtensions: true,
   },
   curator: {
     name: "curator",
-    provider: "openrouter-soukr",
-    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    model: CHEAP_MODEL,
     thinking: "off",
   },
   lotus: {
     name: "lotus",
-    model: "anthropic/claude-3-7-sonnet",
+    model: STRONG_MODEL,
     thinking: "high",
   },
   "pi-uma": {
     name: "pi-uma",
-    provider: "openrouter-soukr",
-    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    model: CHEAP_MODEL,
     thinking: "off",
   },
   mozek_rust: {
     name: "mozek_rust",
-    model: "anthropic/claude-3-7-sonnet",
+    model: STRONG_MODEL,
     thinking: "high",
   },
   fast: {
     name: "fast",
-    model: "google/gemini-2.5-flash",
+    model: MID_MODEL,
     thinking: "off",
   },
   frontier: {
     name: "frontier",
-    model: "anthropic/claude-3-7-sonnet",
+    model: STRONG_MODEL,
     thinking: "high",
   },
+};
+
+/**
+ * A named multi-stage role chain.
+ *
+ * Reconnaissance runs on a cheap read-only model and hands verified facts to
+ * an expensive writer, whose output an independent read-only reviewer audits.
+ * Each stage receives the previous stage's report as its handoff.
+ */
+export const DEFAULT_PIPELINES: Record<string, string[]> = {
+  /** scout → implementer → reviewer */
+  build: ["scout", "implementer", "reviewer"],
+  /** scout → oracle (architecture critique before any code is written) */
+  design: ["scout", "oracle"],
+  /** librarian → implementer (docs first, then code) */
+  research: ["librarian", "implementer"],
+  /** fixer → reviewer */
+  repair: ["fixer", "reviewer"],
 };
 
 export function getDefaultConfig(): OrchestratorConfig {
   return {
     defaultProfile: "fast",
     profiles: { ...DEFAULT_PROFILES },
+    pipelines: { ...DEFAULT_PIPELINES },
     splitDirection: "right",
     autoConfirm: true,
   };
@@ -174,6 +223,7 @@ export function loadConfig(cwd?: string): OrchestratorConfig {
           ...resolved,
           ...projectData,
           profiles: { ...resolved.profiles, ...(projectData.profiles || {}) },
+          pipelines: { ...resolved.pipelines, ...(projectData.pipelines || {}) },
         };
       }
     } catch {
@@ -182,6 +232,20 @@ export function loadConfig(cwd?: string): OrchestratorConfig {
   }
 
   return resolved;
+}
+
+/** Resolves a pipeline by name, or parses a comma-separated role chain. */
+export function resolvePipeline(
+  spec: string,
+  config: OrchestratorConfig
+): string[] | undefined {
+  const named = config.pipelines?.[spec.toLowerCase().trim()];
+  if (named && named.length > 0) return named;
+  const inline = spec
+    .split(",")
+    .map((r) => r.trim())
+    .filter(Boolean);
+  return inline.length > 1 ? inline : undefined;
 }
 
 export function saveConfig(
@@ -237,8 +301,12 @@ export function buildPiLaunchCommand(profile?: AgentProfile): string {
   if (!profile) return "pi";
   const parts = ["pi"];
 
-  if (profile.provider) {
-    parts.push("--provider", profile.provider);
+  // Only a provider present in the model catalog at argument-parse time can be
+  // passed here; an extension-registered account id would abort startup with
+  // "Unknown provider". Omitting the flag lets the child session resolve its
+  // own configured account instead of failing to launch at all.
+  if (isCliSafeProvider(profile.provider)) {
+    parts.push("--provider", profile.provider!.trim());
   }
   if (profile.model) {
     parts.push("--model", profile.model);

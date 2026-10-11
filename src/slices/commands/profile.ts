@@ -47,6 +47,33 @@ export function getProfileCompletions(
     ].filter((item) => parts.length <= 1 || item.label.startsWith(parts[1] || ""));
   }
 
+  // Level 3: /orch profile set <name> <model> — offer Pi's live model catalog.
+  if (parts[1] === "set") {
+    if (parts.length <= 3) {
+      // Still completing the profile name.
+      const prefix = parts[2] || "";
+      return Object.keys(state.config.profiles)
+        .filter((name) => name.toLowerCase().startsWith(prefix.toLowerCase()))
+        .map((name) => ({
+          label: name,
+          value: `profile set ${name} `,
+          description: `Set the model for profile "${name}" — pick from Pi's catalog`,
+        }));
+    }
+
+    // Model level: the catalog the /model picker shows.
+    const modelPrefix = parts.slice(3).join(" ").toLowerCase();
+    const matches = state.availableModels.filter(
+      (m) => !modelPrefix || m.id.toLowerCase().includes(modelPrefix)
+    );
+    const shown = matches.length > 0 ? matches : state.availableModels;
+    return shown.slice(0, 60).map((m) => ({
+      label: `${m.id}  [${m.provider}]`,
+      value: `profile set ${parts[2]} ${m.id}`,
+      description: m.name,
+    }));
+  }
+
   // Level 3: /orch profile select <name>
   if (parts[1] === "select") {
     const prefix = parts[2] || "";

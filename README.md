@@ -37,6 +37,23 @@ Every role profile pairs a **soul** (identity, prohibitions, output contract in 
 
 A scout launched with `--tools read,ls,find,grep` **cannot** call `edit` or `write` even if the model asks. Full catalog: [`docs/ROLES.md`](docs/ROLES.md).
 
+### Role pipelines
+
+Roles chain into sequential pipelines where each stage receives the previous stage's report as an explicit handoff:
+
+| Pipeline | Chain | Use |
+|---|---|---|
+| `build` | `scout → implementer → reviewer` | Full cycle: map → implement → audit |
+| `design` | `scout → oracle` | Reconnaissance plus architecture critique *before* code |
+| `research` | `librarian → implementer` | Docs first, then code |
+| `repair` | `fixer → reviewer` | Fix plus independent audit |
+
+A chain stops loudly when a stage times out or reports `blocked` — briefing the next role on an incomplete report is worse than stopping.
+
+### Model selection from Pi's catalog
+
+`/orch profile set <role> ` completes from Pi's **live model catalog** — the same models the `/model` picker shows. No hand-typed slugs.
+
 ```bash
 /orch profile list                   # list roles with models and tool grants
 /orch split scout                    # open a read-only recon pane (free)
@@ -50,6 +67,7 @@ A scout launched with `--tools read,ls,find,grep` **cannot** call `edit` or `wri
 | Tool | Parameters | Description |
 |---|---|---|
 | `orch_route` | `prompt`, `judge?`, `maxContext?` | Query UMA fastbrain routing: specialist, confidence, runner-up, and context slice facts. |
+| `orch_pipeline` | `pipeline`, `task` | Run a chained role pipeline (`build`, `design`, `research`, `repair`, or `role1,role2`) with handoff between panes. |
 | `orch_delegate` | `target`, `prompt`, `includeContext?`, `wait?`, `timeoutMs?` | Delegate task prompt to Herdr agent pane with pre-warmed memory context. |
 | `orch_status` | *(none)* | Live report of active Herdr workspaces, tabs, panes, and agent lifecycle states. |
 | `orch_collect` | `target`, `lines?` | Read terminal output from a delegated coding agent. |
@@ -59,6 +77,9 @@ A scout launched with `--tools read,ls,find,grep` **cannot** call `edit` or `wri
 ## ⌨️ Slash Commands (`/orch`)
 
 - `/orch auto <prompt>` — Evaluates route; if confident, summarizes and delegates to the target specialist.
+- `/orch pipeline <name|roles> <task>` — Runs roles sequentially, each in its own pane, handing the previous stage's report forward.
+  - `/orch pipeline build "oprav WAL v pi-uma"` → `scout → implementer → reviewer`
+  - `/orch pipeline scout,oracle "navrhni nový store"` → custom chain
 - `/orch route <prompt>` — Displays the System-1 routing verdict, confidence score, and recalled context slice facts without delegating.
 - `/orch delegate <target> <prompt>` — Manually delegates a prompt to a named specialist or pane ID.
 - `/orch split [target]` — Splits workspace into a new side-by-side pane for the specialist and launches Pi.

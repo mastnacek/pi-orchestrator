@@ -8,9 +8,10 @@ import {
   runInPane,
   splitPane,
 } from "../../shared/herdr_client.ts";
-import { buildPiLaunchCommand, getProfileFor } from "../../shared/config.ts";
+import { buildPiLaunchCommand, getProfileFor, resolvePipeline } from "../../shared/config.ts";
 import { getProfileCompletions, handleProfileCommand } from "./profile.ts";
 import { getSettingsCompletions, handleSettingsCommand } from "./settings.ts";
+import { runPipeline, formatPipelineResult } from "../../shared/pipeline.ts";
 import {
   handleAutoCommand,
   handleDelegateCommand,
@@ -48,6 +49,11 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
             label: "delegate",
             value: "delegate ",
             description: cs.compDelegate,
+          },
+          {
+            label: "pipeline",
+            value: "pipeline ",
+            description: cs.compPipeline,
           },
           {
             label: "split",
@@ -93,6 +99,21 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
         return subcommands.filter((sub) => sub.label.startsWith(parts[0]));
       }
 
+      if (parts[0] === "pipeline") {
+        // Level 2: name the built-in chains, annotated with their stage list.
+        if (parts.length <= 2) {
+          const prefix = parts[1] || "";
+          return Object.entries(state.config.pipelines || {})
+            .filter(([name]) => name.startsWith(prefix))
+            .map(([name, stages]) => ({
+              label: `${name} (${stages.join(" → ")})`,
+              value: `pipeline ${name} `,
+              description: cs.compPipeline,
+            }));
+        }
+        return [];
+      }
+
       if (parts[0] === "profile") {
         return getProfileCompletions(parts, state);
       }
@@ -129,6 +150,47 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
 
       if (subcmd === "lang" || subcmd === "auto-confirm" || subcmd === "direction") {
         await handleSettingsCommand(subcmd, restText, ctx, state);
+        return;
+      }
+
+      if (subcmd === "pipeline") {
+        const spec = rest[0];
+        const task = rest.slice(1).join(" ").trim();
+        if (!spec || !task) {
+          if (ctx.hasUI) ctx.ui.notify(currentStrings.pipelineUsage, "warning");
+          return;
+        }
+        const stages = resolvePipeline(spec, state.config);
+        if (!stages) {
+          if (ctx.hasUI) {
+            ctx.ui.notify(
+              currentStrings.pipelineUnknown(
+                spec,
+                Object.keys(state.config.pipelines || {}).join(", ")
+              ),
+              "warning"
+            );
+          }
+          return;
+        }
+
+        try {
+          const result = await runPipeline(stages, task, ctx, state, (index, role, total) => {
+            if (ctx.hasUI) {
+              ctx.ui.notify(currentStrings.pipelineRunning(index, total, role), "info");
+            }
+          });
+          if (ctx.hasUI) {
+            ctx.ui.notify(
+              formatPipelineResult(result, state.lang),
+              result.ok ? "info" : "warning"
+            );
+          }
+        } catch (err) {
+          if (ctx.hasUI) {
+            ctx.ui.notify(`Pipeline failed: ${String(err)}`, "error");
+          }
+        }
         return;
       }
 
