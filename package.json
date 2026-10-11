@@ -1,6 +1,6 @@
 {
   "name": "@mastnacek/pi-orchestrator",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Memory-native orchestrator for Pi coding agent and Herdr multiplexer",
   "type": "module",
   "main": "./index.ts",

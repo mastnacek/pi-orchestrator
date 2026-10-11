@@ -58,7 +58,7 @@ export function getProfileCompletions(
         return {
           label: isActive ? `${name} ✓` : name,
           value: `profile select ${name}`,
-          description: `Model: ${p.model || "default"}${isActive ? " · ● AKTIVNÍ" : ""}`,
+          description: `Model: ${p.model || "default"}${p.thinking ? ` (thinking: ${p.thinking})` : ""}${isActive ? " · ● AKTIVNÍ" : ""}`,
         };
       });
   }
