@@ -7,6 +7,7 @@ export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhi
 export interface AgentProfile {
   name: string;
   model?: string;
+  provider?: string;
   thinking?: ThinkingLevel;
   appendSystemPrompt?: string;
   cwd?: string;
@@ -125,9 +126,14 @@ export function getProfileFor(
 export function buildPiLaunchCommand(profile?: AgentProfile): string {
   if (!profile) return "pi";
   const parts = ["pi"];
+  if (profile.provider) {
+    parts.push("--provider", profile.provider);
+  }
   if (profile.model) {
+    const thinkingSuffixes = [":off", ":minimal", ":low", ":medium", ":high", ":xhigh", ":max"];
+    const hasThinking = thinkingSuffixes.some((s) => profile.model!.toLowerCase().endsWith(s));
     const modelArg =
-      profile.thinking && !profile.model.includes(":")
+      profile.thinking && !hasThinking
         ? `${profile.model}:${profile.thinking}`
         : profile.model;
     parts.push("--model", modelArg);

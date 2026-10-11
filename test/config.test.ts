@@ -17,6 +17,17 @@ test("buildPiLaunchCommand formats model and thinking levels", () => {
   assert.equal(cmd, "pi --model anthropic/claude-3-7-sonnet:high");
 });
 
+test("buildPiLaunchCommand includes explicit provider flag if set", () => {
+  const profile: AgentProfile = {
+    name: "test-prov",
+    provider: "openrouter-soukr",
+    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    thinking: "off",
+  };
+  const cmd = buildPiLaunchCommand(profile);
+  assert.equal(cmd, "pi --provider openrouter-soukr --model nvidia/nemotron-3-ultra-550b-a55b:free:off");
+});
+
 test("buildPiLaunchCommand formats system prompt", () => {
   const profile: AgentProfile = {
     name: "test",

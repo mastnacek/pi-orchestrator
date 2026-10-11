@@ -138,19 +138,27 @@ export async function handleProfileCommand(
   }
 
   if (sub === "set") {
+    let provider: string | undefined;
+    const provIdx = parts.indexOf("--provider");
+    if (provIdx !== -1 && parts[provIdx + 1]) {
+      provider = parts[provIdx + 1];
+      parts.splice(provIdx, 2);
+    }
+
     const name = parts[1];
     const model = parts.slice(2).join(" ").trim();
     if (!name || !model) {
-      if (ctx.hasUI) ctx.ui.notify("Usage: /orch profile set <name> <model>", "warning");
+      if (ctx.hasUI) ctx.ui.notify("Usage: /orch profile set <name> <model> [--provider <p>] [--global]", "warning");
       return;
     }
     state.config.profiles[name] = {
       ...(state.config.profiles[name] || { name }),
       name,
       model,
+      ...(provider ? { provider } : {}),
     };
     saveConfig(state.config, isGlobal, ctx.cwd);
-    if (ctx.hasUI) ctx.ui.notify(s.profileSet(name, model), "info");
+    if (ctx.hasUI) ctx.ui.notify(s.profileSet(name, `${model}${provider ? ` (provider: ${provider})` : ""}`), "info");
     return;
   }
 
