@@ -154,14 +154,34 @@ Models are **never hand-typed**. `/orch profile set <role> ` completes from Pi's
 
 ## 7. Provider & Account Limitation (important)
 
-Multi-account OpenRouter aliases (e.g. `openrouter-soukr`) are registered by the `pi-openrouter-accounts` plugin **at `session_start`** — long after Pi validated its command-line flags. Therefore:
+Multi-account OpenRouter aliases (e.g. `openrouter-soukr`) are registered by the `pi-openrouter-accounts` plugin **at `session_start`** — long after Pi validated its command-line flags. This was verified experimentally:
 
-- `--provider openrouter-soukr` **fails** with `Unknown provider`.
-- Profiles must **not** set such an alias as `provider`; omitting it lets the child session resolve its own configured account.
+| Form | Result |
+|---|---|
+| `--provider openrouter-soukr` | ❌ `Unknown provider` |
+| `--model openrouter-soukr/<id>` | ❌ `Model not found` |
+| `OPENROUTER_API_KEY=<soukr>` + `--model <id>` | ❌ auth.json key won, 404 |
+| `--model <id>` (no provider) | ⚠️ resolves through the **built-in** `openrouter` account |
+| *no* `--model` at all | ✅ uses `settings.json` `defaultProvider`/`defaultModel` (i.e. the alias) |
+
+**Consequence:** the account alias is **not addressable from the command line by any means**. Passing `--model` switches resolution to the built-in `openrouter` account.
+
+**`--no-extensions` does NOT change account routing.** Verified: the same 404 occurs with and without extensions. It removes the account plugin, but `--model` resolution never consulted that plugin anyway. Keep `--no-extensions` on read-only roles — it prevents nested delegation, and costs nothing in account terms.
+
+### Two distinct accounts (verified via `/api/v1/key`)
+
+| `auth.json` entry | Key hash | Spend | Free models |
+|---|---|---|---|
+| `openrouter` + `openrouter-default` | `54c4d305e9` | $54.47 | ❌ 404 (`free-model-training`) |
+| `openrouter-soukr` | `5df4e96577` | $0.00087 | ✅ 200 OK |
+
+> **Correction of an earlier claim:** the free model is *not* blocked on the `soukr` account — it is blocked on the **built-in** account. `soukr` permits free models. Any free-model failure therefore proves the request went to the built-in account, not to `soukr`.
+
+### What this means for roles
+
+Model-pinned roles bill the **built-in** account. To bill `soukr`, a role must omit `--model` and inherit the session default. These two goals — "pin a per-role model" and "pin the `soukr` account" — are mutually exclusive from the CLI.
 
 Valid `provider` values are only those present in the catalog at argument-parse time: `antigravity`, `kimi-coding`, `ollama`, `opencode`, `openrouter`, `zenfree`.
-
-> Note: the free `nvidia/nemotron-3-ultra-550b-a55b:free` returns 404 on the `soukr` account (`free-model-training-violation`, that account's privacy settings). The shipped roster uses `google/gemini-2.5-flash-lite` (1M context) instead.
 
 Thinking is passed via the dedicated `--thinking` flag, never as a model suffix — a variant id like `...:free` would otherwise collide into an unparseable `:free:off`.
 

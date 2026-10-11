@@ -151,14 +151,34 @@ Modely se neopisují ručně. Při psaní příkazu `/orch profile set <role> ` 
 
 ## Omezení: účty OpenRouteru (`openrouter-soukr`)
 
-Víceúčtové aliasy (např. `openrouter-soukr`) registruje plugin `pi-openrouter-accounts` **až při `session_start`** — tedy dlouho poté, co Pi ověřil příkazové přepínače. Z tohoto důvodu:
+Víceúčtové aliasy (např. `openrouter-soukr`) registruje plugin `pi-openrouter-accounts` **až při `session_start`** — tedy dlouho poté, co Pi ověřil příkazové přepínače. Ověřeno experimentálně:
 
-- `--provider openrouter-soukr` **selže** s `Unknown provider`,
-- profil proto účet nezapisuje a nechává potomka vyřešit vlastní nakonfigurovaný účet.
+| Forma | Výsledek |
+|---|---|
+| `--provider openrouter-soukr` | ❌ `Unknown provider` (validace před načtením extensionů) |
+| `--model openrouter-soukr/<id>` | ❌ `Model not found` |
+| `OPENROUTER_API_KEY=<soukr>` + `--model <id>` | ❌ klíč z auth.json vyhrál, 404 |
+| `--model <id>` (bez provideru) | ⚠️ model se resolvuje přes **vestavěný** `openrouter` účet |
+| *žádný* `--model` | ✅ použije se `defaultProvider`/`defaultModel` ze settings (tedy soukr) |
 
-Platné hodnoty `provider` jsou pouze ty, které jsou v katalogu už při parsování argumentů: `antigravity`, `kimi-coding`, `ollama`, `opencode`, `openrouter`, `zenfree`.
+**Zásadní důsledek:** alias účtu **není z příkazové řádky adresovatelný vůbec**. A předání `--model` přepne resolvaci na vestavěný `openrouter` účet.
 
-> Pozn.: bezplatný `nvidia/nemotron-3-ultra-550b-a55b:free` vrací na účtu `soukr` chybu 404 (`free-model-training-violation`) podle nastavení soukromí toho účtu — proto role používají `gemini-2.5-flash-lite` (1M kontext, ~$0.10/M vstupu).
+Platné hodnoty `provider` jsou pouze ty v katalogu při parsování argumentů: `antigravity`, `kimi-coding`, `ollama`, `opencode`, `openrouter`, `zenfree`.
+
+### Dvě různé účty (ověřeno přes `/api/v1/key`)
+
+| Záznam v `auth.json` | Hash klíče | Útrata | Bezplatné modely |
+|---|---|---|---|
+| `openrouter` + `openrouter-default` | `54c4d305e9` | $54,47 | ❌ 404 (`free-model-training`) |
+| `openrouter-soukr` | `5df4e96577` | $0,00087 | ✅ 200 OK |
+
+> **Oprava dřívějšího tvrzení:** bezplatný model není blokován na účtu `soukr` — je blokován na **vestavěném** účtu. Účet `soukr` bezplatné modely povoluje. Jakékoli selhání bezplatného modelu tedy znamená, že zakázka šla na vestavěný účet, nikoli na soukr.
+
+### Co z toho plyne pro role
+
+- `--no-extensions` **nemění** přiřazení účtu — ověřeno: se i bez extensionů vrací stejná chyba.
+- O přiřazení rozhoduje výhradně to, zda je předán `--model`.
+- Role proto při přiřazeném modelu účtují **vestavěný** účet; aby účtovaly `soukr`, musely by `--model` vynechat a převzít výchozí model sezení.
 
 ---
 
