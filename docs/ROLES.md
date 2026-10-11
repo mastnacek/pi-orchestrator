@@ -43,9 +43,18 @@ Prose deklaruje záměr; flagy ho činí nevynutitelným k obejití. Scout s `--
 
 | Role | Model | Thinking | Nástroje | Soul |
 |---|---|---|---|---|
-| *orchestrator* | `nvidia/nemotron-3-ultra-550b-a55b:free` | off | `orch_*`, `uma_*` | *(žije v hlavní instanci)* |
+| `orchestrator` | `google/gemini-2.5-flash` | medium | plné **mínus** `edit,write` | `souls/orchestrator.md` |
 
-Orchestrátor **nikdy sám neimplementuje**. Vyhodnotí úkol přes System-1, otevře panel v Herdr a předá balíček paměti.
+Orchestrátor **nikdy sám neimplementuje**. Vyhodnotí úkol přes System-1, otevře panel v Herdr a předá balíček paměti. Odebrání nástrojů `edit` a `write` je strukturálním vyjádřením tohoto pravidla: když dostane chuť upravit soubor, znamená to, že má delegovat.
+
+### Která role ovládá UMA a umí delegovat?
+
+`orchestrator` — a pouze ona. Pozor na dva chytáky:
+
+- **`pi-uma` NENÍ správce UMA paměti.** Je to *repo specialista* pro práci **v** kódu `pi-uma`, stejně jako `mozek_rust` pro svůj repozitář.
+- **`curator` se o UMA stará, ale nedispečuje.** Jeho soul ho váže k hygieně paměti (staging, konsolidace), nikoli k rozdělování práce.
+
+Role `scout`, `oracle` a `reviewer` běží s `--no-extensions`, takže **nemohou delegovat vůbec** — průzkumný agent, který by mohl plodit další agenty, by popřel vlastní nákladovou a rozsahovou kázeň.
 
 ---
 

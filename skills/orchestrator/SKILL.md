@@ -54,7 +54,7 @@ A `scout` launched with `--tools read,ls,find,grep` **physically cannot** call `
 
 | Layer | Role | Model | Thinking | Tools |
 |---|---|---|---|---|
-| Control | *(orchestrator)* | session default | — | `orch_*`, `uma_*` only |
+| Control | `orchestrator` | `google/gemini-2.5-flash` | medium | full **minus** `edit,write` |
 | Recon | `scout` | `google/gemini-2.5-flash-lite` | off | `read,ls,find,grep` |
 | Recon | `librarian` | `google/gemini-2.5-flash` | low | `read,ls,find,grep,bash` |
 | Execution | `implementer` | `anthropic/claude-sonnet-4.6` | high | full |
@@ -66,6 +66,24 @@ A `scout` launched with `--tools read,ls,find,grep` **physically cannot** call `
 | Memory | `curator` | `google/gemini-2.5-flash-lite` | off | `uma_*`, staging |
 
 Project/model profiles without a soul: `pi-uma`, `mozek_rust`, `fast`, `frontier`.
+
+### Which role controls UMA and delegates?
+
+`orchestrator` — and only it. Note two traps:
+
+- **`pi-uma` is NOT the UMA controller.** It is a *repo specialist* for working
+  **in** the `pi-uma` codebase, the same way `mozek_rust` is for its repo.
+- **`curator` minds UMA, but does not dispatch.** Its soul binds it to memory
+  hygiene (staging, consolidation), not to routing work.
+
+The orchestrator is the only role that holds the delegation tools *and* is
+denied the coding tools (`--exclude-tools edit,write`). That denial is the
+structural statement of "coordinate, never implement": when it feels the urge
+to edit a file, the correct move is to delegate.
+
+Read-only roles (`scout`, `oracle`, `reviewer`) run with `--no-extensions`, so
+they **cannot** delegate at all — a recon agent that could spawn more agents
+would defeat its own cost and scope discipline.
 
 ---
 

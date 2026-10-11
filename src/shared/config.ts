@@ -86,6 +86,19 @@ const CHEAP_MODEL = "google/gemini-2.5-flash-lite";
 const MID_MODEL = "google/gemini-2.5-flash";
 
 export const DEFAULT_PROFILES: Record<string, AgentProfile> = {
+  /**
+   * The dispatcher itself.
+   *
+   * This is the role of the main Pi instance the operator talks to. It is the
+   * only role granted the orchestrator tools AND denied the coding tools — the
+   * structural expression of "coordinate, never implement".
+   */
+  orchestrator: {
+    name: "orchestrator",
+    model: MID_MODEL,
+    thinking: "medium",
+    excludeTools: ["edit", "write"],
+  },
   scout: {
     name: "scout",
     model: CHEAP_MODEL,
