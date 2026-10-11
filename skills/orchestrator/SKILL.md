@@ -1,6 +1,6 @@
 ---
 name: orchestrator
-description: Expert guide for task orchestration across Herdr multiplexer panes using UMA fastbrain routing, agent profiles, and context-slice handoffs. Triggers on mentions of "orchestrator", "orch", "delegate task", "herdr panes", or multi-agent multiplexer workflows.
+description: Expert guide for task orchestration across Herdr multiplexer panes using UMA fastbrain routing, soul-bound agent roles, role pipelines, and context-slice handoffs. Triggers on mentions of "orchestrator", "orch", "pipeline", "delegate task", "herdr panes", or multi-agent multiplexer workflows.
 ---
 
 # Herdr Memory Orchestrator (`@mastnacek/pi-orchestrator`)
@@ -35,86 +35,125 @@ User Request
                ▼
 ┌──────────────────────────────┐
 │ 4. Observability & Collect   │  Watch the agent work in real-time side pane;
-│    (herdr agent read)        │  harvest results back with /orch collect.
+│    (herdr agent read)        │  harvest results with the orch_collect tool.
 └──────────────────────────────┘
 ```
 
 ---
 
-## 2. Interactive Slash Commands (`/orch`)
+## 2. Soul-bound Agent Roles
+
+A role is **not** just prose in a prompt. Every role has two enforcement layers:
+
+| Layer | Location | Enforces |
+|---|---|---|
+| **Soul (identity)** | `souls/<role>.md` | Mission, prohibitions, output contract |
+| **Structural (flags)** | `AgentProfile` | `--tools` allowlist, `--thinking`, `--no-skills`, `--no-extensions` |
+
+A `scout` launched with `--tools read,ls,find,grep` **physically cannot** call `edit` or `write`, even if the model asks for it. Prose declares intent; flags make it impossible to violate.
+
+| Layer | Role | Model | Thinking | Tools |
+|---|---|---|---|---|
+| Control | *(orchestrator)* | session default | — | `orch_*`, `uma_*` only |
+| Recon | `scout` | `google/gemini-2.5-flash-lite` | off | `read,ls,find,grep` |
+| Recon | `librarian` | `google/gemini-2.5-flash` | low | `read,ls,find,grep,bash` |
+| Execution | `implementer` | `anthropic/claude-sonnet-4.6` | high | full |
+| Execution | `fixer` | `google/gemini-2.5-flash` | low | full |
+| Execution | `frontend` | `anthropic/claude-sonnet-4.6` | high | full |
+| Execution | `lotus` | `anthropic/claude-sonnet-4.6` | high | full + MCP |
+| Control | `reviewer` | `anthropic/claude-sonnet-4.6` | high | `read,ls,find,grep` |
+| Control | `oracle` | `anthropic/claude-sonnet-4.6` | high | `read,ls,find,grep` |
+| Memory | `curator` | `google/gemini-2.5-flash-lite` | off | `uma_*`, staging |
+
+Project/model profiles without a soul: `pi-uma`, `mozek_rust`, `fast`, `frontier`.
+
+---
+
+## 3. Role Pipelines (chained execution)
+
+Roles chain sequentially. Each stage runs in its own pane with its soul and tool boundary, and receives the **previous stage's report as an explicit handoff**.
+
+| Pipeline | Chain | Use |
+|---|---|---|
+| `build` | `scout → implementer → reviewer` | Full cycle: map → implement → audit |
+| `design` | `scout → oracle` | Reconnaissance plus architecture critique *before* code |
+| `research` | `librarian → implementer` | Docs first, then code |
+| `repair` | `fixer → reviewer` | Fix plus independent audit |
+
+```bash
+/orch pipeline build "oprav WAL locking v pi-uma"
+/orch pipeline design "přepiš store na async SQLite"
+/orch pipeline scout,oracle,implementer "vlastní řetěz"
+```
+
+**Why sequential:** a reviewer cannot audit work that does not exist yet, and an implementer must not start before reconnaissance returns facts.
+
+**Stop conditions:** the chain halts **loudly** (and reports `failedStage`) when a stage times out (10 min budget) or settles as `blocked` — the agent is waiting on the operator. Briefing the next role on a partial report is worse than stopping. A stage is only harvested after the agent has been *observed working*, so fast stages are not collected mid-flight.
+
+---
+
+## 4. Interactive Slash Commands (`/orch`)
 
 | Command | Description & Practical Example |
 |---|---|
 | `/orch auto <prompt>` | **Full tiered routing:** Evaluates prompt, shows confirmation modal with pane name & status, and submits task.<br>`/orch auto "oprav WAL locking v pi-uma storu"` |
-| `/orch route <prompt>` | **Dry-run route preview:** Previews winner specialist, confidence score, and context slice facts without delegating.<br>`/orch route "prekoduj video v mozek_rust pipeline"` |
-| `/orch split [specialist]` | **Split workspace:** Opens a side-by-side terminal pane to the right with the specialist's directory and launches Pi.<br>`/orch split pi-uma` |
-| `/orch rename <název>` | **Label current pane:** Renames the active Herdr pane for clear visual multiplexer orientation.<br>`/orch rename "Hlavní dispečer"` |
-| `/orch status` | **Multiplexer overview:** Displays all active workspaces, panes, labels, and live agent states.<br>`/orch status` |
-| `/orch profile` | **Profile manager:** Interactive TUI selector or CLI manager for agent models, thinking, and system prompts.<br>`/orch profile list`<br>`/orch profile select frontier`<br>`/orch profile set mozek_rust anthropic/claude-3-7-sonnet` |
-| `/orch delegate <target> <prompt>` | **Manual delegation:** Bypasses routing to send a prompt directly to a specific pane ID or agent.<br>`/orch delegate w1Y:p2Q "analyzuj kód paměti"` |
+| `/orch pipeline <name\|roles> <task>` | **Chain roles:** each stage in its own pane, report handed forward.<br>`/orch pipeline build "oprav WAL v pi-uma"` |
+| `/orch route <prompt>` | **Dry-run route preview:** winner specialist, confidence score, and context slice facts without delegating. |
+| `/orch split [specialist]` | **Split workspace:** opens a side-by-side pane and launches Pi with the role's soul and flags.<br>`/orch split scout` |
+| `/orch delegate <target> <prompt>` | **Manual delegation:** send a prompt directly to a pane ID or agent.<br>`/orch delegate w1Y:p2Q "analyzuj kód paměti"` |
+| `/orch rename <label>` | **Label a pane:** rename the active pane for clear multiplexer orientation. |
+| `/orch status` | **Multiplexer overview:** all panes, labels, agents and lifecycle states, plus example actions. |
+| `/orch profile` | **Profile manager:** interactive selector or CLI manager.<br>`/orch profile list`<br>`/orch profile select scout`<br>`/orch profile set reviewer anthropic/claude-sonnet-4.6` |
+| `/orch auto-confirm on\|off` | Toggle automatic Enter dispatch after prompt paste. |
+| `/orch direction right\|down` | Pane split direction. |
+| `/orch lang cs\|en` | Interface language. |
+| `/orch help` | Full in-product guide. |
 
 ---
 
-## 3. Concrete Status Output Example (`/orch status`)
+## 5. Custom Tools
 
-Running `/orch status` outputs structured diagnostics:
-
-```text
-── Herdr Orchestrator Status ──
-Herdr active: yes (HERDR_ENV=1)
-Orchestrator pane: w1Z:p4 ("Orchestrator")
-Active Workspace: w1Z (pi-uma)
-
-Live Panes & Agents:
-  • Pane w1Z:p4 "Orchestrator" [agent: pi, status: working]
-    cwd: D:\01_programovani\pi\plugins
-  • Pane w1Z:p9 "Specialist: pi-uma" [agent: pi, status: idle]
-    cwd: D:\01_programovani\pi\plugins\pi-uma
-  • Pane w1Y:p2Q "Memory Researcher" [agent: agy, status: idle]
-    cwd: D:\01_programovani\ai-memory
-```
-
-- **`idle`**: Agent is ready to receive a new prompt immediately.
-- **`working`**: Agent is currently generating code or executing tools.
-- **`blocked`**: Agent is waiting for user confirmation or question approval.
+| Tool | Parameters | Description |
+|---|---|---|
+| `orch_route` | `prompt`, `judge?`, `maxContext?` | UMA fastbrain routing verdict with context slice. |
+| `orch_pipeline` | `pipeline`, `task` | Run a chained role pipeline with handoff between panes. |
+| `orch_delegate` | `target`, `prompt`, `includeContext?`, `wait?`, `timeoutMs?` | Delegate a prompt to a Herdr pane with pre-warmed memory. |
+| `orch_status` | *(none)* | Live panes, tabs and agent lifecycle states. |
+| `orch_collect` | `target`, `lines?` | Read a delegated agent's terminal output. |
 
 ---
 
-## 4. Agent Profiles Configuration
+## 6. Model Selection from Pi's Catalog
 
-Profiles define the exact model, reasoning effort, and system prompts for each specialist pane. Configured in `~/.pi/agent/orchestrator.json` or `.pi/orchestrator.json`:
+Models are **never hand-typed**. `/orch profile set <role> ` completes from Pi's **live model catalog** — the same models the `/model` picker shows, with `[provider]` badges. The catalog is snapshotted at `session_start` (completion callbacks receive no context).
 
-```json
-{
-  "defaultProfile": "fast",
-  "autoConfirm": true,
-  "splitDirection": "right",
-  "profiles": {
-    "pi-uma": {
-      "name": "pi-uma",
-      "model": "nvidia/nemotron-3-ultra-550b-a:off",
-      "thinking": "off",
-      "appendSystemPrompt": "Dodržuj přísně VSA architekturu a AST kontrakty."
-    },
-    "mozek_rust": {
-      "name": "mozek_rust",
-      "model": "anthropic/claude-3-7-sonnet",
-      "thinking": "high"
-    },
-    "fast": {
-      "name": "fast",
-      "model": "google/gemini-2.5-flash",
-      "thinking": "off"
-    }
-  }
-}
+```bash
+/orch profile set scout            # → picker lists available models
+/orch profile set reviewer anthropic/claude-sonnet-4.6
 ```
 
 ---
 
-## 5. Invariants & Safety
+## 7. Provider & Account Limitation (important)
 
-1. **Self-Recursion Guard:** Structurally checks `HERDR_PANE_ID` and forbids delegating to the orchestrator's own pane.
-2. **Subagent Recursion Guard:** Suppresses extension execution if `PI_SUBAGENT` or `PI_CHILD_SESSION` is detected.
-3. **Automated Enter Dispatch:** When pasting prompts into target panes, automatically dispatches an `Enter` keypress after a 150ms buffer flush so the agent begins work autonomously.
-4. **Human-in-the-Loop Confirmation:** When using `/orch auto`, an interactive modal always confirms whether to reuse an existing idle pane or split a new one.
+Multi-account OpenRouter aliases (e.g. `openrouter-soukr`) are registered by the `pi-openrouter-accounts` plugin **at `session_start`** — long after Pi validated its command-line flags. Therefore:
+
+- `--provider openrouter-soukr` **fails** with `Unknown provider`.
+- Profiles must **not** set such an alias as `provider`; omitting it lets the child session resolve its own configured account.
+
+Valid `provider` values are only those present in the catalog at argument-parse time: `antigravity`, `kimi-coding`, `ollama`, `opencode`, `openrouter`, `zenfree`.
+
+> Note: the free `nvidia/nemotron-3-ultra-550b-a55b:free` returns 404 on the `soukr` account (`free-model-training-violation`, that account's privacy settings). The shipped roster uses `google/gemini-2.5-flash-lite` (1M context) instead.
+
+Thinking is passed via the dedicated `--thinking` flag, never as a model suffix — a variant id like `...:free` would otherwise collide into an unparseable `:free:off`.
+
+---
+
+## 8. Invariants & Safety
+
+1. **Self-Recursion Guard:** structurally checks `HERDR_PANE_ID` and forbids delegating to the orchestrator's own pane.
+2. **Subagent Recursion Guard:** suppresses extension execution when `PI_SUBAGENT` or `PI_CHILD_SESSION` is set.
+3. **Read-only roles are enforced by flags**, not by prose — a scout cannot write.
+4. **Automated Enter Dispatch:** prompts pasted into a target pane are followed by an `Enter` keypress after a 150 ms buffer flush.
+5. **Human-in-the-Loop Confirmation:** `/orch auto` always shows an interactive modal before delegating.
+6. **UMA write discipline:** memory mutations go exclusively through `uma_write` / `uma_supersede` so the operator can approve them in the modal. Direct file writes to `.uma/` and `bash` invocations of `uma write` are blocked at runtime.
