@@ -36,6 +36,14 @@ export interface Strings {
   compProfileSet: string;
   compProfileRemove: string;
   compProfileMenu: string;
+  compAutoConfirm: string;
+  compAutoConfirmOn: string;
+  compAutoConfirmOff: string;
+  compDirection: string;
+  compDirectionRight: string;
+  compDirectionDown: string;
+  autoConfirmSet: (val: boolean) => string;
+  directionSet: (dir: string) => string;
   compHelp: string;
   detailedHelp: string;
   paneOpened: (paneId: string, dir: string) => string;
@@ -88,6 +96,14 @@ const en: Strings = {
   compProfileSet: "Create or update an agent profile: /orch profile set <name> <model> [--global]",
   compProfileRemove: "Remove an agent profile from configuration",
   compProfileMenu: "Open interactive TUI selector menu to choose active profile",
+  compAutoConfirm: "Toggle automatic Enter confirmation after pasting prompt (on | off)",
+  compAutoConfirmOn: "Auto-send Enter key immediately after prompt insertion",
+  compAutoConfirmOff: "Paste prompt into editor and wait for manual Enter keypress",
+  compDirection: "Pane split direction in Herdr (right | down)",
+  compDirectionRight: "Split pane side-by-side to the right",
+  compDirectionDown: "Split pane stacked below",
+  autoConfirmSet: (val) => `Auto-confirm set to ${val ? "ON" : "OFF"}`,
+  directionSet: (dir) => `Split direction set to ${dir}`,
   compHelp: "Detailed orchestrator and Herdr guide",
   detailedHelp: `── Herdr Multiplexer Orchestrator — Guide & Setup ──
 
@@ -182,6 +198,14 @@ const cs: Strings = {
   compProfileSet: "Vytvoří nebo upraví profil specialisty: /orch profile set <název> <model> [--global]",
   compProfileRemove: "Odebere profil specialisty z konfigurace orchestrátoru",
   compProfileMenu: "Otevře interaktivní TUI menu se seznamem profilů pro rychlý výběr výchozího agenta",
+  compAutoConfirm: "Přepnout automatické odeslání klávesou Enter po vložení promptu (on | off)",
+  compAutoConfirmOn: "Automaticky stisknout Enter ihned po vložení promptu",
+  compAutoConfirmOff: "Vložit prompt do editoru a počkat na ruční stisk Enteru",
+  compDirection: "Směr rozdělení nového panelu v Herdr (right | down)",
+  compDirectionRight: "Rozdělit panel vedle sebe doprava (side-by-side)",
+  compDirectionDown: "Rozdělit panel pod sebe (stacked)",
+  autoConfirmSet: (val) => `Automatický Enter nastaven na ${val ? "ZAPNUTO" : "VYPNUTO"}`,
+  directionSet: (dir) => `Směr rozdělení nastaven na ${dir}`,
   compHelp: "Podrobná nápověda pro orchestrátor a Herdr multiplexer",
   detailedHelp: `── Orchestrátor v Herdr multiplexeru — Nápověda a konfigurace ──
 

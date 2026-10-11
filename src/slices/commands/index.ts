@@ -16,6 +16,7 @@ import {
 } from "../../shared/herdr_client.ts";
 import { buildPiLaunchCommand, getProfileFor } from "../../shared/config.ts";
 import { getProfileCompletions, handleProfileCommand } from "./profile.ts";
+import { getSettingsCompletions, handleSettingsCommand } from "./settings.ts";
 
 export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
   const s = stringsFor(state.lang);
@@ -28,6 +29,10 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
       const parts = trimmed.split(/\s+/);
 
       if (parts.length <= 1 && !trimmed.includes(" ")) {
+        const curProf = state.config.defaultProfile || "fast";
+        const curDir = state.config.splitDirection || "right";
+        const curConfirm = state.config.autoConfirm;
+
         const subcommands = [
           {
             label: "auto",
@@ -55,9 +60,24 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
             description: cs.compRename,
           },
           {
-            label: "profile",
+            label: `profile (${curProf})`,
             value: "profile ",
-            description: cs.compProfile,
+            description: `${cs.compProfile} · ● AKTIVNÍ: ${curProf.toUpperCase()}`,
+          },
+          {
+            label: `auto-confirm (${curConfirm ? "on" : "off"})`,
+            value: "auto-confirm ",
+            description: `${cs.compAutoConfirm}${curConfirm ? " · ● ZAPNUTO" : " · ○ VYPNUTO"}`,
+          },
+          {
+            label: `direction (${curDir})`,
+            value: "direction ",
+            description: `${cs.compDirection} · ● AKTIVNÍ: ${curDir.toUpperCase()}`,
+          },
+          {
+            label: `lang (${state.lang})`,
+            value: "lang ",
+            description: `${cs.compLang} · ● AKTIVNÍ: ${state.lang.toUpperCase()}`,
           },
           {
             label: "help",
@@ -69,11 +89,6 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
             value: "status",
             description: cs.compStatus,
           },
-          {
-            label: "lang",
-            value: "lang ",
-            description: cs.compLang,
-          },
         ];
         return subcommands.filter((sub) => sub.label.startsWith(parts[0]));
       }
@@ -82,11 +97,8 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
         return getProfileCompletions(parts, state);
       }
 
-      if (parts[0] === "lang") {
-        return [
-          { label: "en", value: "lang en", description: cs.compLangEn },
-          { label: "cs", value: "lang cs", description: cs.compLangCs },
-        ].filter((sub) => sub.label.startsWith(parts[1] || ""));
+      if (parts[0] === "lang" || parts[0] === "auto-confirm" || parts[0] === "direction") {
+        return getSettingsCompletions(parts, state);
       }
 
       return [];
@@ -130,13 +142,8 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
         return;
       }
 
-      if (subcmd === "lang") {
-        if (restText === "en" || restText === "cs") {
-          state.lang = restText as Locale;
-          if (ctx.hasUI) {
-            ctx.ui.notify(`Language set to ${state.lang}`, "info");
-          }
-        }
+      if (subcmd === "lang" || subcmd === "auto-confirm" || subcmd === "direction") {
+        await handleSettingsCommand(subcmd, restText, ctx, state);
         return;
       }
 
