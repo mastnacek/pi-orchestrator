@@ -176,9 +176,22 @@ Platné hodnoty `provider` jsou pouze ty v katalogu při parsování argumentů:
 
 ### Co z toho plyne pro role
 
-- `--no-extensions` **nemění** přiřazení účtu — ověřeno: se i bez extensionů vrací stejná chyba.
-- O přiřazení rozhoduje výhradně to, zda je předán `--model`.
-- Role proto při přiřazeném modelu účtují **vestavěný** účet; aby účtovaly `soukr`, musely by `--model` vynechat a převzít výchozí model sezení.
+Role proto **model v příkazové řádce vůbec nepředávají**. CLI nese jen strukturální přepínače (allowlist nástrojů, soul, izolace kontextu), které přiřazení účtu nijak neovlivňují. Model a thinking se nastavují **až za běhu** příkazy `/model` a `/thinking`, tedy v živém sezení, kde jsou alias providery už zaregistrované:
+
+```
+CLI:  pi --tools read,ls,find,grep --no-skills --no-extensions \
+         --append-system-prompt "…/souls/scout.md"
+RT :  /model google/gemini-2.5-flash-lite
+      /thinking off
+```
+
+Tím je splněn požadavek „jakýkoli model registrovaný v Pi“ — vybrat lze všechno, co ukazuje picker `/model`, včetně modelů z alias účtů:
+
+```
+/model openrouter-soukr/nvidia/nemotron-3-ultra-550b-a55b:free
+```
+
+`--no-extensions` zůstává jen jako hranice proti vnořené delegaci u čtecích rolí; přiřazení účtu neovlivňuje (ověřeno: stejná chyba se i bez něj).
 
 ---
 
@@ -195,12 +208,15 @@ Platné hodnoty `provider` jsou pouze ty v katalogu při parsování argumentů:
 ## Ukázka vygenerovaného příkazu
 
 ```bash
-# scout — strukturálně čtecí, zakázané skills i extensions
-pi --model google/gemini-2.5-flash-lite \
-   --thinking off \
-   --tools read,ls,find,grep \
+# scout — strukturálně čtecí; model se přepíná až za běhu
+pi --tools read,ls,find,grep \
    --no-skills --no-extensions \
    --append-system-prompt "…/souls/scout.md"
+# a v sezení:
+#   /model google/gemini-2.5-flash-lite
+#   /thinking off
 ```
 
-Poznámka k `--thinking`: je předán vlastním přepínačem, nikoli jako suffix modelu. Variantní id (`...:free`) by se jinak srazilo se zkratkou `:thinking` a vznikl by neparsovatelný `:free:off`.
+**Poznámka k účtům:** vynechání `--model` z CLI je zároveň to, co nechává panel na účtu nakonfigurovaném v `settings.json` (`defaultProvider`). Předání `--model` totiž resolvuje přes vestavěný katalog a přesměruje platbu na vestavěný účet.
+
+Poznámka k `--thinking`: není na příkazové řádce vůbec — nastavuje se za běhu příkazem `/thinking`.

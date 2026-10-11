@@ -10,35 +10,25 @@ import {
   type AgentProfile,
 } from "../src/shared/config.ts";
 
-test("buildPiLaunchCommand uses the dedicated --thinking flag, not a model suffix", () => {
+test("buildPiLaunchCommand carries no model and no thinking level", () => {
+  // Both are applied at runtime via /model and /thinking. A CLI --model is
+  // resolved before extension-registered account providers exist, which both
+  // blocks alias-served models and silently bills the wrong account.
   const profile: AgentProfile = {
     name: "test",
-    model: "anthropic/claude-3-7-sonnet",
+    model: "anthropic/claude-sonnet-4.6",
     thinking: "high",
   };
-  assert.equal(
-    buildPiLaunchCommand(profile),
-    "pi --model anthropic/claude-3-7-sonnet --thinking high"
-  );
-});
-
-test("a variant model id never collides with a thinking suffix", () => {
-  // Regression: the old builder produced `...:free:off`, which pi cannot parse.
-  const profile: AgentProfile = {
-    name: "variant",
-    provider: "openrouter",
-    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
-    thinking: "off",
-  };
   const cmd = buildPiLaunchCommand(profile);
-  assert.ok(cmd.includes("--model nvidia/nemotron-3-ultra-550b-a55b:free"));
-  assert.ok(cmd.includes("--thinking off"));
-  assert.ok(!cmd.includes(":free:off"));
+  assert.ok(!cmd.includes("--model"), cmd);
+  assert.ok(!cmd.includes("--thinking"), cmd);
 });
 
-test("read-only roles are structurally restricted via --tools", () => {
+test("buildPiLaunchCommand keeps the structural flags", () => {
   const profile: AgentProfile = {
     name: "scout",
+    model: "google/gemini-2.5-flash-lite",
+    thinking: "off",
     tools: ["read", "ls", "find", "grep"],
     noSkills: true,
     noExtensions: true,
@@ -47,8 +37,6 @@ test("read-only roles are structurally restricted via --tools", () => {
   assert.ok(cmd.includes("--tools read,ls,find,grep"));
   assert.ok(cmd.includes("--no-skills"));
   assert.ok(cmd.includes("--no-extensions"));
-  // The permissions are enforced by flags, not merely requested in prose.
-  assert.ok(!cmd.includes("--model"));
 });
 
 test("buildPiLaunchCommand formats a plain system prompt append", () => {
@@ -98,10 +86,6 @@ test("getProfileFor resolves a role profile or falls back to the default", () =>
 });
 
 test("an extension-registered account alias is never passed as --provider", () => {
-  // Regression: `--provider openrouter-soukr` aborts pi with "Unknown provider"
-  // because pi-openrouter-accounts registers the id at session_start, after the
-  // CLI has already validated the flag. Omitting it lets the child resolve its
-  // own configured account instead of failing to launch.
   const profile: AgentProfile = {
     name: "scout",
     provider: "openrouter-soukr",
@@ -110,7 +94,6 @@ test("an extension-registered account alias is never passed as --provider", () =
   const cmd = buildPiLaunchCommand(profile);
   assert.ok(!cmd.includes("openrouter-soukr"), cmd);
   assert.ok(!cmd.includes("--provider"), cmd);
-  assert.ok(cmd.includes("--model google/gemini-2.5-flash-lite"));
 });
 
 test("a catalog provider is passed through as --provider", () => {

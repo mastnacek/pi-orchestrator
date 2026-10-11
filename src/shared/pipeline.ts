@@ -22,6 +22,7 @@ export interface PipelineContext {
   cwd: string;
 }
 import { resolvePipeline, getProfileFor, buildPiLaunchCommand } from "./config.ts";
+import { applyRuntimeSetup } from "./role_setup.ts";
 import {
   listPanes,
   promptAgent,
@@ -145,6 +146,9 @@ export async function runPipeline(
       const profile = getProfileFor(role, state.config);
       await runInPane(paneId, buildPiLaunchCommand(profile));
       await waitForAgentReady(paneId);
+      // Model and thinking are pinned at runtime: `--model` on the command line
+      // would resolve before account providers register and bill the wrong one.
+      await applyRuntimeSetup(paneId, profile);
     }
 
     await promptAgent(paneId, buildStagePrompt(role, task, handoff, lang));

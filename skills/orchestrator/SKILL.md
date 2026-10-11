@@ -52,7 +52,7 @@ A role is **not** just prose in a prompt. Every role has two enforcement layers:
 
 A `scout` launched with `--tools read,ls,find,grep` **physically cannot** call `edit` or `write`, even if the model asks for it. Prose declares intent; flags make it impossible to violate.
 
-| Layer | Role | Model | Thinking | Tools |
+| Layer | Role | Model (applied at runtime) | Thinking | Tools |
 |---|---|---|---|---|
 | Control | `orchestrator` | `google/gemini-2.5-flash` | medium | full **minus** `edit,write` |
 | Recon | `scout` | `google/gemini-2.5-flash-lite` | off | `read,ls,find,grep` |
@@ -179,11 +179,24 @@ Multi-account OpenRouter aliases (e.g. `openrouter-soukr`) are registered by the
 
 ### What this means for roles
 
-Model-pinned roles bill the **built-in** account. To bill `soukr`, a role must omit `--model` and inherit the session default. These two goals — "pin a per-role model" and "pin the `soukr` account" — are mutually exclusive from the CLI.
+Roles therefore **never pass a model on the command line**. The CLI carries only structural flags (tool allowlist, soul, context isolation), none of which affect account resolution. Model and thinking level are applied **at runtime**, in the live session where alias providers are already registered:
+
+```
+CLI:  pi --tools read,ls,find,grep --no-skills --no-extensions \
+         --append-system-prompt "…/souls/scout.md"
+RT :  /model google/gemini-2.5-flash-lite
+      /thinking off
+```
+
+This satisfies "any model registered in Pi": everything the `/model` picker shows is selectable, alias-served models included:
+
+```
+/model openrouter-soukr/nvidia/nemotron-3-ultra-550b-a55b:free
+```
+
+Omitting `--model` is also what keeps a pane on the account configured in `settings.json` (`defaultProvider`). Passing `--model` resolves through the built-in catalog and re-routes billing to the built-in account.
 
 Valid `provider` values are only those present in the catalog at argument-parse time: `antigravity`, `kimi-coding`, `ollama`, `opencode`, `openrouter`, `zenfree`.
-
-Thinking is passed via the dedicated `--thinking` flag, never as a model suffix — a variant id like `...:free` would otherwise collide into an unparseable `:free:off`.
 
 ---
 

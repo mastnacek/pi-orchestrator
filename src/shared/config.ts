@@ -310,22 +310,24 @@ export function getSoulPath(role: string): string | undefined {
  * model suffix: a variant id such as `...:free` would otherwise collide with
  * the `:thinking` shorthand and produce an unparseable `:free:off`.
  */
+/**
+ * Builds the `pi` launch command for a role.
+ *
+ * The command deliberately carries **no model and no thinking level**: both are
+ * applied after the session starts, via `/model` and `/thinking` (see
+ * `role_setup.ts`). Passing `--model` would resolve against the built-in
+ * catalog before extension-registered account providers exist, which both
+ * blocks alias-served models and silently bills the wrong account.
+ *
+ * What remains here is purely structural: the tool allowlist, the soul, and
+ * context isolation — none of which affect provider or account resolution.
+ */
 export function buildPiLaunchCommand(profile?: AgentProfile): string {
   if (!profile) return "pi";
   const parts = ["pi"];
 
-  // Only a provider present in the model catalog at argument-parse time can be
-  // passed here; an extension-registered account id would abort startup with
-  // "Unknown provider". Omitting the flag lets the child session resolve its
-  // own configured account instead of failing to launch at all.
   if (isCliSafeProvider(profile.provider)) {
     parts.push("--provider", profile.provider!.trim());
-  }
-  if (profile.model) {
-    parts.push("--model", profile.model);
-  }
-  if (profile.thinking) {
-    parts.push("--thinking", profile.thinking);
   }
   if (profile.tools && profile.tools.length > 0) {
     parts.push("--tools", profile.tools.join(","));

@@ -7,8 +7,10 @@ import {
   resolveProjectDirectory,
   runInPane,
   splitPane,
+  waitForAgentReady,
 } from "../../shared/herdr_client.ts";
 import { buildPiLaunchCommand, getProfileFor, resolvePipeline } from "../../shared/config.ts";
+import { applyRuntimeSetup } from "../../shared/role_setup.ts";
 import { getProfileCompletions, handleProfileCommand } from "./profile.ts";
 import { getSettingsCompletions, handleSettingsCommand } from "./settings.ts";
 import { runPipeline, formatPipelineResult } from "../../shared/pipeline.ts";
@@ -225,8 +227,9 @@ export function registerCommands(pi: ExtensionAPI, state: PluginState): void {
           const paneLabel = target ? `Specialist: ${target}` : "Terminal";
           await renamePane(newPaneId, paneLabel).catch(() => {});
           const profile = target ? getProfileFor(target, state.config) : undefined;
-          const launchCmd = buildPiLaunchCommand(profile);
-          await runInPane(newPaneId, launchCmd);
+          await runInPane(newPaneId, buildPiLaunchCommand(profile));
+          await waitForAgentReady(newPaneId).catch(() => false);
+          await applyRuntimeSetup(newPaneId, profile);
           if (ctx.hasUI) {
             ctx.ui.notify(currentStrings.paneOpened(newPaneId, projectDir), "info");
           }
