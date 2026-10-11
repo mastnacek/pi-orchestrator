@@ -21,9 +21,52 @@ export interface OrchestratorConfig {
 }
 
 export const DEFAULT_PROFILES: Record<string, AgentProfile> = {
+  scout: {
+    name: "scout",
+    provider: "openrouter-soukr",
+    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    thinking: "off",
+  },
+  implementer: {
+    name: "implementer",
+    model: "anthropic/claude-3-7-sonnet",
+    thinking: "high",
+  },
+  reviewer: {
+    name: "reviewer",
+    model: "anthropic/claude-3-7-sonnet",
+    thinking: "high",
+  },
+  oracle: {
+    name: "oracle",
+    model: "anthropic/claude-3-7-sonnet",
+    thinking: "high",
+  },
+  fixer: {
+    name: "fixer",
+    model: "google/gemini-2.5-flash",
+    thinking: "off",
+  },
+  frontend: {
+    name: "frontend",
+    model: "anthropic/claude-3-7-sonnet",
+    thinking: "high",
+  },
+  lotus: {
+    name: "lotus",
+    model: "anthropic/claude-3-7-sonnet",
+    thinking: "high",
+  },
+  curator: {
+    name: "curator",
+    provider: "openrouter-soukr",
+    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    thinking: "off",
+  },
   "pi-uma": {
     name: "pi-uma",
-    model: "nvidia/nemotron-3-ultra-550b-a:off",
+    provider: "openrouter-soukr",
+    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
     thinking: "off",
   },
   mozek_rust: {
@@ -123,6 +166,23 @@ export function getProfileFor(
   return undefined;
 }
 
+export function getSoulPath(role: string): string | undefined {
+  const baseDir = import.meta.dirname || "";
+  const cleanName = role.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  const candidates = [
+    path.join(baseDir, "..", "..", "souls", `${cleanName}.md`),
+    path.join(baseDir, "..", "souls", `${cleanName}.md`),
+    path.join(process.cwd(), "souls", `${cleanName}.md`),
+    path.join("D:/01_programovani/pi/plugins/pi-orchestrator/souls", `${cleanName}.md`),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      return path.resolve(c);
+    }
+  }
+  return undefined;
+}
+
 export function buildPiLaunchCommand(profile?: AgentProfile): string {
   if (!profile) return "pi";
   const parts = ["pi"];
@@ -138,8 +198,9 @@ export function buildPiLaunchCommand(profile?: AgentProfile): string {
         : profile.model;
     parts.push("--model", modelArg);
   }
-  if (profile.appendSystemPrompt) {
-    parts.push("--append-system-prompt", `"${profile.appendSystemPrompt.replace(/"/g, '\\"')}"`);
+  const soulPath = profile.appendSystemPrompt || getSoulPath(profile.name);
+  if (soulPath) {
+    parts.push("--append-system-prompt", `"${soulPath.replace(/"/g, '\\"')}"`);
   }
   return parts.join(" ");
 }

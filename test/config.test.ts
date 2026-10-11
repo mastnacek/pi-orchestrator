@@ -46,7 +46,11 @@ test("getProfileFor resolves specialist profile or falls back to default", () =>
   const uma = getProfileFor("pi-uma", cfg);
   assert.ok(uma);
   assert.equal(uma.name, "pi-uma");
-  assert.equal(uma.model, "nvidia/nemotron-3-ultra-550b-a:off");
+  assert.equal(uma.model, "nvidia/nemotron-3-ultra-550b-a55b:free");
+
+  const scout = getProfileFor("scout", cfg);
+  assert.ok(scout);
+  assert.equal(scout.name, "scout");
 
   // Unknown specialist falls back to default profile (fast)
   const unknown = getProfileFor("completely_new_project", cfg);
