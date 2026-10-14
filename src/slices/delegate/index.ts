@@ -11,6 +11,7 @@ import {
   waitForAgentReady,
 } from "../../shared/herdr_client.ts";
 import { buildPiLaunchCommand, getProfileFor } from "../../shared/config.ts";
+import { shouldSplitPane } from "../../shared/delegate_policy.ts";
 import { applyRuntimeSetup } from "../../shared/role_setup.ts";
 
 export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void {
@@ -50,8 +51,9 @@ export function registerDelegateTool(pi: ExtensionAPI, state: PluginState): void
         const resolved = await resolveTarget(params.target, ctx.cwd);
         let resolvedTarget = resolved.paneId;
 
-        // If no agent exists in the target and target isn't an explicit raw pane_id, split a new pane!
-        if (!resolved.hasAgent && params.target.toLowerCase() !== resolved.paneId.toLowerCase()) {
+        // An unknown specialist or project name splits a fresh pane; a live agent
+        // or an explicit pane id is prompted directly (SPAI-039).
+        if (shouldSplitPane(resolved.hasAgent, params.target)) {
           const projectDir = resolveProjectDirectory(params.target, ctx.cwd) || ctx.cwd;
           resolvedTarget = await splitPane({
             cwd: projectDir,

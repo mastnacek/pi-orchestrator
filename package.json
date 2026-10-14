@@ -1,6 +1,6 @@
 {
   "name": "@mastnacek/pi-orchestrator",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Memory-native orchestrator for Pi coding agent and Herdr multiplexer, with soul-bound agent roles",
   "files": [
     "README.md",

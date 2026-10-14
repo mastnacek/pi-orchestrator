@@ -3,6 +3,8 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import type { HerdrAgent, HerdrPane, HerdrTab } from "./types.ts";
 
+import { buildAgentPromptArgs, isStallFalseNegative } from "./delegate_policy.ts";
+
 export function findHerdrBinary(): string {
   if (process.env.HERDR_BIN_PATH) {
     return process.env.HERDR_BIN_PATH;
@@ -315,28 +317,45 @@ export async function promptAgent(
     );
   }
 
-  const args = ["agent", "prompt", target, promptText];
-  if (options?.wait) {
-    args.push("--wait");
-  }
-  if (options?.timeoutMs) {
-    args.push("--timeout", String(options.timeoutMs));
-  }
-
+  const args = buildAgentPromptArgs(target, promptText, options);
   const res = await runHerdr(args);
+
+  // herdr's stall detector can fire a false negative: the prompt was pasted and
+  // the agent is busy, but the CLI never observed the transition (SPAI-040).
+  // Forgive it only when the agent is demonstrably working; a genuine stall
+  // against an idle agent stays an error.
+  const output = res.stderr || res.stdout;
+  let stallsWithoutObservation = false;
   if (res.code !== 0) {
-    throw new Error(
-      `herdr agent prompt to ${target} failed (code ${res.code}): ${res.stderr || res.stdout}`
-    );
+    const status = await agentStatus(target);
+    stallsWithoutObservation = isStallFalseNegative(output, status);
+    if (!stallsWithoutObservation) {
+      throw new Error(
+        `herdr agent prompt to ${target} failed (code ${res.code}): ${output}`
+      );
+    }
   }
 
-  // Auto-confirm: send Enter key so the agent submits immediately without waiting
+  // Auto-confirm: send Enter key so the agent submits immediately without
+  // waiting. Also on a forgiven stall — an unsubmitted paste would otherwise sit
+  // in the pane.
   if (options?.autoConfirm !== false) {
     await new Promise((resolve) => setTimeout(resolve, 150));
     await sendKeys(target, "enter").catch(() => {});
   }
 
-  return res.stdout.trim();
+  return stallsWithoutObservation
+    ? "prompt submitted (herdr reported a stall it could not observe; the agent is already busy)"
+    : res.stdout.trim();
+}
+
+/** Current lifecycle status of a pane's agent, or `undefined` when it has none. */
+export async function agentStatus(target: string): Promise<string | undefined> {
+  const agents = await listAgents().catch(() => []);
+  const t = target.toLowerCase();
+  return agents.find(
+    (a) => a.pane_id.toLowerCase() === t || a.agent.toLowerCase() === t
+  )?.agent_status;
 }
 
 export async function readAgent(
